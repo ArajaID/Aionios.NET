@@ -32,7 +32,8 @@
         Info,
         ShieldAlert,
         ExternalLink,
-        DollarSign
+        DollarSign,
+        UserCog
     } from 'lucide-svelte';
     import { cn } from '@/lib/utils';
     import Breadcrumb from '@/Components/ui/breadcrumb/Breadcrumb.svelte';
@@ -67,6 +68,10 @@
     }
 </script>
 
+<svelte:head>
+    <title>{title ? `${title} - ${appSettings.brand_name || 'Aionios.NET'}` : (appSettings.brand_name || 'Aionios.NET')}</title>
+</svelte:head>
+
 <div class="min-h-screen bg-stone-100 text-stone-900 flex flex-col md:flex-row antialiased">
     <!-- Mobile Sidebar Backdrop -->
     {#if sidebarOpen}
@@ -81,12 +86,12 @@
     <!-- Sidebar Navigation -->
     <aside
         class={cn(
-            'fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-stone-200 bg-white transition-transform duration-300 md:static md:translate-x-0 shadow-xs',
+            'fixed inset-y-0 left-0 z-50 flex h-dvh w-72 shrink-0 flex-col border-r border-stone-200 bg-white transition-transform duration-300 md:sticky md:top-0 md:translate-x-0 shadow-xs',
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
     >
         <!-- Logo & Company Brand -->
-        <div class="flex h-16 items-center justify-between border-b border-stone-200 px-6 bg-stone-50/50">
+        <div class="flex h-16 shrink-0 items-center justify-between border-b border-stone-200 px-6 bg-stone-50/50">
             <Link href="/dashboard" class="flex items-center gap-3 group">
                 <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-900 text-stone-50 font-black shadow-sm group-hover:scale-105 transition-transform">
                     A
@@ -111,7 +116,7 @@
         </div>
 
         <!-- Navigation Links (Tailored by Role) -->
-        <div class="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+        <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4 space-y-6">
             <!-- Main Section -->
             <div>
                 <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-2">Utama</p>
@@ -440,6 +445,19 @@
                     <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-2">Manajemen Owner</p>
                     <nav class="space-y-1">
                         <Link
+                            href="/users"
+                            class={cn(
+                                'flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold transition-colors',
+                                isCurrent('/users')
+                                    ? 'bg-stone-900 text-stone-50 shadow-xs'
+                                    : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+                            )}
+                        >
+                            <UserCog class="h-4 w-4 shrink-0" />
+                            <span>Manajemen User</span>
+                        </Link>
+
+                        <Link
                             href="/approvals"
                             class={cn(
                                 'flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold transition-colors',
@@ -485,7 +503,7 @@
         </div>
 
         <!-- Current User Box -->
-        <div class="border-t border-stone-200 p-4 bg-stone-50/70">
+        <div class="shrink-0 border-t border-stone-200 p-4 bg-stone-50/70">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3 truncate">
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-200 text-xs font-bold text-stone-800 border border-stone-300">

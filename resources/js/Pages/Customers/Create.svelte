@@ -80,7 +80,7 @@
         </div>
 
         <Alert variant="info" title="Aturan Billing Pertama (Prorata)">
-            Berdasarkan PRD Bagian 16 & 74, tagihan pertama pelanggan baru dihitung secara otomatis berdasarkan jumlah hari aktif (Prorata) dengan menggunakan <strong>harga normal paket</strong>, bukan harga promo.
+            Tagihan pertama pelanggan baru dihitung otomatis berdasarkan jumlah hari aktif (Prorata) menggunakan <strong>harga normal paket</strong>, bukan harga promo.
         </Alert>
 
         <form onsubmit={handleSubmit} class="space-y-6">

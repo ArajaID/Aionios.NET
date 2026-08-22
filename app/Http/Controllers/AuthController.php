@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Services\AuditService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,6 +27,8 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
+        $credentials['is_active'] = true;
+
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
@@ -40,24 +41,6 @@ class AuthController extends Controller
         return back()->withErrors([
             'email' => 'Kredensial yang diberikan tidak cocok dengan data kami.',
         ])->onlyInput('email');
-    }
-
-    public function quickLogin(Request $request): RedirectResponse
-    {
-        $request->validate(['role' => 'required|in:owner,admin_keuangan,admin_jaringan']);
-        $user = User::where('role', $request->role)->where('is_active', true)->first();
-
-        if ($user) {
-            Auth::login($user);
-            $request->session()->regenerate();
-
-            AuditService::log('quick_login', 'auth', 'User', $user->id, null, ['role' => $user->role]);
-
-            return redirect()->route('dashboard')
-                ->with('success', "Masuk sebagai {$user->name} ({$user->role}).");
-        }
-
-        return back()->with('error', 'User demo tidak ditemukan.');
     }
 
     public function logout(Request $request): RedirectResponse

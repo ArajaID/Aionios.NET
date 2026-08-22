@@ -20,13 +20,13 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
 // Guest Routes
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/quick-login', [AuthController::class, 'quickLogin'])->name('quick-login');
 });
 
 // Authenticated Routes
@@ -41,7 +41,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
 
     // Customers (Network Admin & Owner, Finance can view)
-    Route::resource('customers', CustomerController::class);
+    Route::resource('customers', CustomerController::class)->except(['destroy']);
     Route::post('/customers/{customer}/terminate', [CustomerController::class, 'terminate'])->name('customers.terminate');
     Route::post('/customers/{customer}/reactivate', [CustomerController::class, 'reactivate'])->name('customers.reactivate');
 
@@ -49,6 +49,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/packages', [PackageController::class, 'index'])->name('packages.index');
     Route::post('/packages', [PackageController::class, 'store'])->name('packages.store');
     Route::put('/packages/{package}', [PackageController::class, 'update'])->name('packages.update');
+    Route::delete('/packages/{package}', [PackageController::class, 'destroy'])->name('packages.destroy');
 
     // Promotions
     Route::get('/promotions', [PromotionController::class, 'index'])->name('promotions.index');
@@ -108,6 +109,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/mikrotik', [MikrotikController::class, 'index'])->name('mikrotik.index');
     Route::post('/mikrotik/router', [MikrotikController::class, 'updateRouter'])->name('mikrotik.router.update');
     Route::post('/mikrotik/test', [MikrotikController::class, 'testConnection'])->name('mikrotik.test');
+    Route::get('/mikrotik/resource', [MikrotikController::class, 'resource'])->name('mikrotik.resource');
     Route::post('/mikrotik/process-jobs', [MikrotikController::class, 'processJobs'])->name('mikrotik.process-jobs');
     Route::post('/mikrotik/toggle-isolate/{customer}', [MikrotikController::class, 'toggleIsolate'])->name('mikrotik.toggle-isolate');
 
@@ -119,11 +121,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/approvals/reversal/{reversalRequest}/approve', [ApprovalController::class, 'approveReversal'])->name('approvals.reversal.approve');
         Route::post('/approvals/reversal/{reversalRequest}/reject', [ApprovalController::class, 'rejectReversal'])->name('approvals.reversal.reject');
 
+        Route::post('/accounting/periods', [AccountingPeriodController::class, 'store'])->name('accounting.periods.store');
         Route::post('/accounting/periods/close', [AccountingPeriodController::class, 'close'])->name('accounting.periods.close');
         Route::post('/accounting/periods/{accountingPeriod}/reopen', [AccountingPeriodController::class, 'reopen'])->name('accounting.periods.reopen');
 
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
+
+        Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
+        Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
     });
 });

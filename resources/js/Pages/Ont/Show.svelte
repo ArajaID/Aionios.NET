@@ -104,7 +104,7 @@
             </Card>
         </div>
 
-        <!-- History Timeline (PRD Section 29) -->
+        <!-- ONT history timeline -->
         <Card>
             <CardHeader>
                 <CardTitle class="flex items-center gap-2">

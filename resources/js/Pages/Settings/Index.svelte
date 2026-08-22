@@ -9,27 +9,24 @@
     import CardDescription from '@/Components/ui/card/CardDescription.svelte';
     import CardContent from '@/Components/ui/card/CardContent.svelte';
     import CardFooter from '@/Components/ui/card/CardFooter.svelte';
-    import Alert from '@/Components/ui/alert/Alert.svelte';
-    import { Settings, Save, Calendar, Percent, Network, Shield } from 'lucide-svelte';
+    import { Settings, Save, Calendar, Shield } from 'lucide-svelte';
 
     let { settings = {} } = $props();
 
     const form = useForm({
-        brand_name: settings.brand_name || 'Aionios.NET',
+        brand_name: settings.app_brand_name || 'Aionios.NET',
         default_qris_mdr: settings.default_qris_mdr ?? 0.7,
         invoice_due_day: settings.invoice_due_day ?? 22,
         auto_isolate_day: settings.auto_isolate_day ?? 23,
         auto_isolate_time: settings.auto_isolate_time || '01:00',
         auto_isolate_enabled: settings.auto_isolate_enabled ?? true,
-        mikrotik_host: settings.mikrotik_host || '192.168.88.1',
-        mikrotik_port: settings.mikrotik_port || 8728,
-        mikrotik_user: settings.mikrotik_user || 'admin',
-        mikrotik_timeout: settings.mikrotik_timeout || 5,
     });
 
     function handleSubmit(e) {
         e.preventDefault();
-        form.post('/settings');
+        form.post('/settings', {
+            preserveScroll: true,
+        });
     }
 </script>
 
@@ -44,7 +41,7 @@
                     <Settings class="h-5 w-5 text-stone-800" />
                     Pengaturan Sistem ISP Aionios
                 </h1>
-                <p class="text-xs text-stone-500 mt-1">Konfigurasi parameter operasional billing, MDR QRIS, isolir otomatis, dan koneksi router.</p>
+                <p class="text-xs text-stone-500 mt-1">Konfigurasi identitas aplikasi, parameter billing, MDR QRIS, dan jadwal isolir otomatis.</p>
             </div>
         </div>
 
@@ -70,7 +67,7 @@
                 </CardContent>
             </Card>
 
-            <!-- Jadwal Billing & Auto Isolir (PRD Bagian 14 & 24) -->
+            <!-- Jadwal billing dan isolir otomatis -->
             <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
@@ -110,42 +107,10 @@
                         </select>
                     </div>
                 </CardContent>
-            </Card>
-
-            <!-- Parameter MikroTik RouterOS (PRD Bagian 17) -->
-            <Card>
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <Network class="h-4 w-4 text-cyan-800" />
-                        Konfigurasi Gateway MikroTik RouterOS
-                    </CardTitle>
-                </CardHeader>
-                <CardContent class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                        <label for="set_mt_host" class="text-xs font-semibold text-stone-700">Host IP Router</label>
-                        <Input id="set_mt_host" bind:value={form.mikrotik_host} required />
-                    </div>
-
-                    <div class="space-y-1.5">
-                        <label for="set_mt_port" class="text-xs font-semibold text-stone-700">Port API RouterOS</label>
-                        <Input id="set_mt_port" type="number" bind:value={form.mikrotik_port} required />
-                    </div>
-
-                    <div class="space-y-1.5">
-                        <label for="set_mt_user" class="text-xs font-semibold text-stone-700">Username API</label>
-                        <Input id="set_mt_user" bind:value={form.mikrotik_user} required />
-                    </div>
-
-                    <div class="space-y-1.5">
-                        <label for="set_mt_to" class="text-xs font-semibold text-stone-700">Timeout Koneksi (Detik)</label>
-                        <Input id="set_mt_to" type="number" bind:value={form.mikrotik_timeout} min="1" max="30" required />
-                    </div>
-                </CardContent>
-
                 <CardFooter class="flex items-center justify-end border-t border-stone-200 pt-4">
                     <Button type="submit" disabled={form.processing} class="px-8 font-semibold">
                         <Save class="h-4 w-4 mr-1" />
-                        {form.processing ? 'Menyimpan...' : 'Simpan Seluruh Pengaturan'}
+                        {form.processing ? 'Menyimpan...' : 'Simpan Pengaturan'}
                     </Button>
                 </CardFooter>
             </Card>

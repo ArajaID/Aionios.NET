@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Package;
 use App\Services\AuditService;
+use App\Services\MikrotikService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -53,5 +54,42 @@ class PackageController extends Controller
         AuditService::log('update_package', 'packages', 'Package', $package->id, $old, $package->toArray());
 
         return back()->with('success', 'Data paket internet berhasil diperbarui. Perubahan harga akan berlaku pada billing periode berikutnya.');
+    }
+
+    public function destroy(Package $package, MikrotikService $mikrotikService): RedirectResponse
+    {
+        if ($package->customers()->exists()) {
+            return back()->with('error', 'Paket tidak dapat dihapus karena masih digunakan pelanggan. Pindahkan seluruh pelanggan ke paket lain terlebih dahulu.');
+        }
+
+        $oldValues = $package->toArray();
+        $profileUsedByAnotherPackage = Package::where('id', '!=', $package->id)
+            ->where('ppp_profile', $package->ppp_profile)
+            ->exists();
+
+        $mikrotikMessage = null;
+        if (!$profileUsedByAnotherPackage) {
+            $result = $mikrotikService->deletePppProfile($package->ppp_profile);
+            if (!$result['success']) {
+                return back()->with('error', $result['message'] . ' Paket belum dihapus dari database.');
+            }
+            $mikrotikMessage = $result['message'];
+        }
+
+        $package->delete();
+
+        AuditService::log('delete_package', 'packages', 'Package', $oldValues['id'], $oldValues, [
+            'deleted' => true,
+            'mikrotik_profile_deleted' => !$profileUsedByAnotherPackage,
+        ]);
+
+        $message = "Paket {$oldValues['code']} berhasil dihapus.";
+        if ($profileUsedByAnotherPackage) {
+            $message .= " PPP Profile {$oldValues['ppp_profile']} dipertahankan karena masih digunakan paket lain.";
+        } elseif ($mikrotikMessage) {
+            $message .= " {$mikrotikMessage}";
+        }
+
+        return back()->with('success', $message);
     }
 }

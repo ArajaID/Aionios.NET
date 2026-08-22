@@ -29,7 +29,8 @@
         RotateCcw,
         CheckCircle2,
         XCircle,
-        AlertTriangle
+        AlertTriangle,
+        Calendar
     } from 'lucide-svelte';
     import { formatRupiah, formatDate } from '@/lib/utils';
 
@@ -104,7 +105,7 @@
                             >
                                 {customer.status?.toUpperCase()}
                             </Badge>
-                            <span class="text-xs font-mono text-stone-500 bg-stone-800/80 px-2 py-0.5 rounded border border-stone-300">
+                            <span class="inline-flex rounded-md border border-stone-700 bg-stone-800 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wide text-white shadow-sm">
                                 {customer.customer_id}
                             </span>
                         </div>
@@ -159,7 +160,7 @@
                                 Terminasi
                             </Button>
                         {:else if customer.status === 'terminated'}
-                            <!-- Reactivation Button with PRD Rule enforcement -->
+                            <!-- Reactivation button with outstanding-balance rule enforcement -->
                             {#if customer.outstanding_amount > 0}
                                 <Button
                                     variant="outline"
@@ -314,13 +315,21 @@
                                     {:else}
                                         {#each customer.invoices as inv}
                                             <tr class="hover:bg-stone-50">
-                                                <td class="py-2.5 font-mono text-stone-800">
-                                                    <Link href={`/invoices/${inv.id}`} class="hover:underline text-stone-800">
-                                                        {inv.invoice_number}
-                                                    </Link>
-                                                    {#if inv.is_prorata}
-                                                        <span class="ml-1 text-[10px] bg-stone-800 text-stone-700 px-1.5 py-0.5 rounded">Prorata</span>
-                                                    {/if}
+                                                <td class="py-2.5">
+                                                    <div class="flex flex-col items-start gap-1.5">
+                                                        <Link
+                                                            href={`/invoices/${inv.id}`}
+                                                            class="inline-flex rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wide text-blue-800 shadow-2xs transition-colors hover:border-blue-300 hover:bg-blue-100"
+                                                        >
+                                                            {inv.invoice_number}
+                                                        </Link>
+                                                        {#if inv.is_prorata}
+                                                            <span class="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-700">
+                                                                <Calendar class="h-2.5 w-2.5" />
+                                                                Prorata
+                                                            </span>
+                                                        {/if}
+                                                    </div>
                                                 </td>
                                                 <td class="py-2.5 font-mono">{inv.period}</td>
                                                 <td class="py-2.5 text-stone-500">{formatDate(inv.issue_date)}</td>
@@ -476,7 +485,7 @@
     <Dialog bind:open={terminateDialogOpen} title="Konfirmasi Terminasi Pelanggan">
         <form onsubmit={handleTerminate} class="space-y-4">
             <Alert variant="destructive" title="Perhatian Terminasi!">
-                Sesuai PRD Bagian 8: Pelanggan yang berhenti <strong>tidak dihapus</strong> dari database. Status diubah menjadi Terminated, PPP Secret dinonaktifkan di MikroTik, dan ONT ditarik, namun seluruh histori tetap tersimpan.
+                Pelanggan yang berhenti <strong>tidak dihapus</strong> dari database. Status diubah menjadi Terminated, PPP Secret dinonaktifkan di MikroTik, dan ONT ditarik, tetapi seluruh histori tetap tersimpan.
             </Alert>
 
             <div class="space-y-1.5">
@@ -496,7 +505,7 @@
     <!-- REACTIVATION MODAL -->
     <Dialog bind:open={reactivateDialogOpen} title="Reaktivasi Pelanggan Lama">
         <form onsubmit={handleReactivate} class="space-y-4">
-            <Alert variant="info" title="Syarat Reaktivasi (PRD Bagian 9)">
+            <Alert variant="info" title="Syarat Reaktivasi">
                 Reaktivasi hanya diperbolehkan jika <strong>Tunggakan = Rp0</strong>. Tagihan pertama setelah reaktivasi akan dihitung secara prorata normal.
             </Alert>
 

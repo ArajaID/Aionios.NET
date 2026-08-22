@@ -10,8 +10,9 @@
     import CardContent from '@/Components/ui/card/CardContent.svelte';
     import Badge from '@/Components/ui/badge/Badge.svelte';
     import Dialog from '@/Components/ui/dialog/Dialog.svelte';
+    import ConfirmationDialog from '@/Components/ui/confirmation-dialog/ConfirmationDialog.svelte';
     import Alert from '@/Components/ui/alert/Alert.svelte';
-    import { Sparkles, Plus, Users, UserCheck, XCircle, ArrowRight } from 'lucide-svelte';
+    import { Sparkles, Plus, UserCheck } from 'lucide-svelte';
     import { formatRupiah, formatDate } from '@/lib/utils';
 
     let {
@@ -22,6 +23,9 @@
 
     let createModalOpen = $state(false);
     let assignModalOpen = $state(false);
+    let cancelModalOpen = $state(false);
+    let selectedAssignment = $state(null);
+    let cancelling = $state(false);
 
     const createForm = useForm({
         code: '',
@@ -60,10 +64,20 @@
         });
     }
 
-    function cancelAssignment(id) {
-        if (confirm('Yakin ingin membatalkan promo untuk pelanggan ini? Profil bandwidth / harga akan dikembalikan ke normal.')) {
-            router.post(`/promotions/${id}/cancel`);
-        }
+    function openCancelAssignment(assignment) {
+        selectedAssignment = assignment;
+        cancelModalOpen = true;
+    }
+
+    function confirmCancelAssignment() {
+        if (!selectedAssignment || cancelling) return;
+
+        cancelling = true;
+        router.post(`/promotions/${selectedAssignment.id}/cancel`, {}, {
+            preserveScroll: true,
+            onSuccess: () => (cancelModalOpen = false),
+            onFinish: () => (cancelling = false),
+        });
     }
 </script>
 
@@ -95,7 +109,7 @@
             </div>
         </div>
 
-        <Alert variant="info" title="Aturan Bisnis Promo ISP (PRD Bagian 11 & 12)">
+        <Alert variant="info" title="Aturan Bisnis Promo ISP">
             - <strong>Speed Boost:</strong> Sistem mengubah PPP Profile di MikroTik tanpa mengubah harga invoice.<br />
             - <strong>Price Cut & Special Discount:</strong> Dievaluasi saat invoice reguler diterbitkan tanggal 1. Tagihan pertama pelanggan baru selalu menggunakan harga normal.
         </Alert>
@@ -109,7 +123,7 @@
                             <Badge variant={promo.type === 'speed_boost' ? 'primary' : promo.type === 'price_cut' ? 'success' : 'purple'}>
                                 {promo.type === 'speed_boost' ? 'SPEED BOOST' : promo.type === 'price_cut' ? 'PRICE CUT' : 'SPECIAL DISCOUNT'}
                             </Badge>
-                            <span class="text-xs font-mono text-stone-500 bg-stone-800 px-2 py-0.5 rounded border border-stone-300">
+                            <span class="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wide text-violet-800 shadow-2xs">
                                 {promo.code}
                             </span>
                         </div>
@@ -186,7 +200,7 @@
                                                 variant="destructive"
                                                 size="sm"
                                                 class="h-6 px-2 text-[11px]"
-                                                onclick={() => cancelAssignment(cp.id)}
+                                                onclick={() => openCancelAssignment(cp)}
                                             >
                                                 Batalkan
                                             </Button>
@@ -269,6 +283,19 @@
             </div>
         </form>
     </Dialog>
+
+    <ConfirmationDialog
+        bind:open={cancelModalOpen}
+        title="Batalkan Promo Pelanggan"
+        confirmLabel="Ya, Batalkan Promo"
+        variant="warning"
+        processing={cancelling}
+        onconfirm={confirmCancelAssignment}
+    >
+        Promo <strong>{selectedAssignment?.promotion?.name}</strong> untuk pelanggan
+        <strong>{selectedAssignment?.customer?.name}</strong> akan dibatalkan. Profil bandwidth
+        dan harga pelanggan akan dikembalikan ke pengaturan normal.
+    </ConfirmationDialog>
 
     <!-- ASSIGN PROMO MODAL -->
     <Dialog bind:open={assignModalOpen} title="Berikan Promo ke Pelanggan">

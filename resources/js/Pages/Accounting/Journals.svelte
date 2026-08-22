@@ -63,10 +63,7 @@
 
     function handleManualSubmit(e) {
         e.preventDefault();
-        if (!isManualBalanced) {
-            alert('Jurnal manual belum seimbang!');
-            return;
-        }
+        if (!isManualBalanced) return;
         manualForm.post('/accounting/journals/manual', {
             onSuccess: () => {
                 manualModalOpen = false;

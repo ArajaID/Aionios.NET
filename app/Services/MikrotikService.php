@@ -10,6 +10,8 @@ use App\Models\PppAccount;
 use App\Models\Notification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Client\ConnectionException;
+use RuntimeException;
 use Throwable;
 
 class MikrotikService
@@ -34,21 +36,27 @@ class MikrotikService
         try {
             // For RouterOS 7.24 REST API (default http port or 443)
             $url = "http://{$this->router->host}:{$this->router->port}/rest/system/resource";
-            $response = Http::timeout(3)
+            $response = Http::timeout($this->router->timeout ?? 5)
                 ->withBasicAuth($this->router->username, $this->router->password ?? '')
                 ->get($url);
 
             if ($response->successful()) {
+                $resourceData = $response->json();
+                if (is_array($resourceData) && array_is_list($resourceData)) {
+                    $resourceData = $resourceData[0] ?? [];
+                }
+
                 $this->router->update([
                     'status' => 'online',
                     'last_connected_at' => now(),
+                    'resource_data' => $resourceData,
                 ]);
 
                 return [
                     'success' => true,
                     'message' => 'Terhubung ke MikroTik RouterOS 7.24.',
                     'status' => 'online',
-                    'data' => $response->json(),
+                    'data' => $resourceData,
                 ];
             }
         } catch (Throwable $e) {
@@ -64,14 +72,123 @@ class MikrotikService
         ];
     }
 
+    public function getActiveConnections(): array
+    {
+        if (!$this->router || !$this->router->is_active) {
+            return [];
+        }
+
+        try {
+            $url = "http://{$this->router->host}:{$this->router->port}/rest/ppp/active";
+            $response = Http::timeout($this->router->timeout ?? 5)
+                ->retry(2, 500, fn (Throwable $exception) => $exception instanceof ConnectionException)
+                ->withBasicAuth($this->router->username, $this->router->password ?? '')
+                ->get($url);
+
+            if ($response->successful()) {
+                $connections = $response->json();
+                return is_array($connections) ? array_values($connections) : [];
+            }
+
+            Log::warning("Failed to fetch MikroTik active PPP connections: HTTP {$response->status()} {$response->body()}");
+        } catch (Throwable $e) {
+            Log::warning("Failed to fetch MikroTik active PPP connections: {$e->getMessage()}");
+        }
+
+        return [];
+    }
+
+    public function deletePppProfile(string $profileName): array
+    {
+        if (in_array($profileName, ['default', 'default-encryption', 'ISOLIR'], true)) {
+            return [
+                'success' => false,
+                'message' => "PPP Profile sistem {$profileName} tidak boleh dihapus.",
+            ];
+        }
+
+        if (!$this->router || !$this->router->is_active) {
+            return [
+                'success' => false,
+                'message' => 'Router MikroTik tidak aktif atau tidak tersedia.',
+            ];
+        }
+
+        try {
+            $profileUrl = "http://{$this->router->host}:{$this->router->port}/rest/ppp/profile";
+            $client = Http::timeout($this->router->timeout ?? 5)
+                ->retry(2, 500, fn (Throwable $exception) => $exception instanceof ConnectionException)
+                ->withBasicAuth($this->router->username, $this->router->password ?? '');
+
+            $lookup = $client->get($profileUrl, ['name' => $profileName]);
+            if (!$lookup->successful()) {
+                return [
+                    'success' => false,
+                    'message' => "Gagal mencari PPP Profile {$profileName}: HTTP {$lookup->status()} {$lookup->body()}",
+                ];
+            }
+
+            $profile = collect($lookup->json())
+                ->first(fn (array $item) => ($item['name'] ?? null) === $profileName);
+
+            if (!$profile) {
+                return [
+                    'success' => true,
+                    'message' => "PPP Profile {$profileName} sudah tidak ada di MikroTik.",
+                ];
+            }
+
+            $profileId = $profile['.id'] ?? null;
+            if (!$profileId) {
+                return [
+                    'success' => false,
+                    'message' => "Resource ID PPP Profile {$profileName} tidak ditemukan.",
+                ];
+            }
+
+            $response = $client->delete($profileUrl . '/' . $profileId);
+            if (!$response->successful()) {
+                return [
+                    'success' => false,
+                    'message' => "MikroTik menolak penghapusan profile {$profileName}: HTTP {$response->status()} {$response->body()}",
+                ];
+            }
+
+            NetworkLog::create([
+                'action' => 'delete_profile',
+                'router_id' => $this->router->id,
+                'status' => 'success',
+                'request_data' => ['profile' => $profileName, 'resource_id' => $profileId],
+                'response_data' => $response->json(),
+                'executed_by' => auth()->id(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "PPP Profile {$profileName} berhasil dihapus dari MikroTik.",
+            ];
+        } catch (Throwable $e) {
+            Log::error("Failed to delete MikroTik PPP profile {$profileName}: {$e->getMessage()}");
+
+            return [
+                'success' => false,
+                'message' => "Gagal terhubung ke MikroTik: {$e->getMessage()}",
+            ];
+        }
+    }
+
     public function createPppSecret(PppAccount $account): bool
     {
+        $package = $account->customer?->package;
         $payload = [
             'name' => $account->username,
             'password' => $account->password,
             'profile' => $account->profile,
             'service' => 'pppoe',
             'comment' => "Customer ID: {$account->customer->customer_id} - {$account->customer->name}",
+            '_profile_rate_limit' => $package
+                ? "{$package->upload_speed_mbps}M/{$package->download_speed_mbps}M"
+                : null,
         ];
 
         return $this->executeOrQueue('create_secret', 'ppp_account', $account->id, $payload, $account->username);
@@ -154,13 +271,12 @@ class MikrotikService
 
     protected function executeOrQueue(string $command, string $targetType, int $targetId, array $payload, string $pppUsername): bool
     {
-        if ($this->router && $this->router->status === 'online') {
+        $failureMessage = 'Router tidak aktif atau tidak tersedia.';
+
+        // Always attempt an active router. A persisted offline/unknown status may be stale.
+        if ($this->router && $this->router->is_active) {
             try {
-                // Execute directly via REST API if online
-                $url = "http://{$this->router->host}:{$this->router->port}/rest/ppp/secret";
-                $res = Http::timeout(3)
-                    ->withBasicAuth($this->router->username, $this->router->password ?? '')
-                    ->post($url, $payload);
+                $res = $this->sendCommand($command, $payload);
 
                 if ($res->successful()) {
                     NetworkLog::create([
@@ -172,22 +288,51 @@ class MikrotikService
                         'response_data' => $res->json(),
                         'executed_by' => auth()->id(),
                     ]);
+
+                    $this->router->update([
+                        'status' => 'online',
+                        'last_connected_at' => now(),
+                    ]);
+
+                    NetworkJob::where([
+                        'command' => $command,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId,
+                        'status' => 'pending',
+                    ])->update([
+                        'status' => 'success',
+                        'error_message' => null,
+                    ]);
+
                     return true;
                 }
+
+                $failureMessage = "HTTP {$res->status()}: " . mb_substr($res->body(), 0, 500);
+                Log::warning("MikroTik command {$command} rejected: {$failureMessage}");
             } catch (Throwable $e) {
-                Log::error("Direct MikroTik command {$command} failed: " . $e->getMessage());
+                $failureMessage = $e->getMessage();
+                Log::error("Direct MikroTik command {$command} failed: {$failureMessage}");
             }
         }
 
-        // If router offline or command failed, push to NetworkJob queue so business logic proceeds
-        NetworkJob::create([
-            'command' => $command,
-            'target_type' => $targetType,
-            'target_id' => $targetId,
-            'payload' => $payload,
-            'status' => 'pending',
-            'attempts' => 0,
-        ]);
+        if ($this->router) {
+            $this->router->update(['status' => 'offline']);
+        }
+
+        // Keep one pending job per command/target so retries stay idempotent.
+        NetworkJob::firstOrCreate(
+            [
+                'command' => $command,
+                'target_type' => $targetType,
+                'target_id' => $targetId,
+                'status' => 'pending',
+            ],
+            [
+                'payload' => $payload,
+                'attempts' => 0,
+                'error_message' => $failureMessage,
+            ]
+        );
 
         NetworkLog::create([
             'action' => $command,
@@ -195,7 +340,10 @@ class MikrotikService
             'ppp_username' => $pppUsername,
             'status' => 'queued_offline',
             'request_data' => $payload,
-            'response_data' => ['message' => 'Command queued in pending sync'],
+            'response_data' => [
+                'message' => 'Command queued in pending sync',
+                'error' => $failureMessage,
+            ],
             'executed_by' => auth()->id(),
         ]);
 
@@ -207,7 +355,7 @@ class MikrotikService
             'link' => '/mikrotik',
         ]);
 
-        return true;
+        return false;
     }
 
     public function processPendingJobs(): int
@@ -217,11 +365,126 @@ class MikrotikService
 
         foreach ($jobs as $job) {
             $job->update(['status' => 'processing', 'attempts' => $job->attempts + 1]);
-            // Simulate / Attempt network execution
-            $job->update(['status' => 'success']);
-            $processed++;
+
+            try {
+                if (!$this->router || !$this->router->is_active) {
+                    throw new RuntimeException('Tidak ada router MikroTik aktif.');
+                }
+
+                $response = $this->sendCommand($job->command, $job->payload ?? []);
+
+                if (!$response->successful()) {
+                    throw new RuntimeException("HTTP {$response->status()}: " . mb_substr($response->body(), 0, 500));
+                }
+
+                $job->update([
+                    'status' => 'success',
+                    'error_message' => null,
+                ]);
+
+                if ($job->command === 'create_secret' && $job->target_type === 'ppp_account') {
+                    PppAccount::whereKey($job->target_id)->update(['last_sync_at' => now()]);
+                }
+
+                NetworkLog::create([
+                    'action' => $job->command,
+                    'router_id' => $this->router->id,
+                    'ppp_username' => $job->payload['name'] ?? $job->payload['username'] ?? null,
+                    'status' => 'success',
+                    'request_data' => $job->payload,
+                    'response_data' => $response->json(),
+                    'executed_by' => auth()->id(),
+                ]);
+
+                $this->router->update([
+                    'status' => 'online',
+                    'last_connected_at' => now(),
+                ]);
+
+                $processed++;
+            } catch (Throwable $e) {
+                $job->update([
+                    'status' => $job->attempts >= 5 ? 'failed' : 'pending',
+                    'error_message' => mb_substr($e->getMessage(), 0, 1000),
+                ]);
+
+                Log::error("MikroTik queued command {$job->command} failed: {$e->getMessage()}");
+            }
         }
 
         return $processed;
+    }
+
+    protected function sendCommand(string $command, array $payload)
+    {
+        if (!$this->router) {
+            throw new RuntimeException('Router MikroTik tidak tersedia.');
+        }
+
+        $baseUrl = "http://{$this->router->host}:{$this->router->port}/rest/ppp/secret";
+        $client = Http::timeout($this->router->timeout ?? 5)
+            ->retry(2, 500, fn (Throwable $exception) => $exception instanceof ConnectionException)
+            ->withBasicAuth($this->router->username, $this->router->password ?? '');
+
+        if ($command === 'create_secret') {
+            $rateLimit = $payload['_profile_rate_limit'] ?? null;
+            unset($payload['_profile_rate_limit']);
+
+            $this->ensurePppProfile($payload['profile'] ?? 'default', $rateLimit, $client);
+
+            return $client->put($baseUrl, $payload);
+        }
+
+        $username = $payload['username'] ?? $payload['name'] ?? null;
+        if (!$username) {
+            throw new RuntimeException("Username PPPoE tidak tersedia untuk perintah {$command}.");
+        }
+
+        $lookup = $client->get($baseUrl, ['name' => $username]);
+        if (!$lookup->successful()) {
+            throw new RuntimeException("Gagal mencari PPP Secret {$username}: HTTP {$lookup->status()} {$lookup->body()}");
+        }
+
+        $secret = collect($lookup->json())->first(fn (array $item) => ($item['name'] ?? null) === $username);
+        $secretId = $secret['.id'] ?? null;
+        if (!$secretId) {
+            throw new RuntimeException("PPP Secret {$username} tidak ditemukan di MikroTik.");
+        }
+
+        unset($payload['username'], $payload['name']);
+
+        // RouterOS REST resource IDs use the literal `*` prefix (for example `*11`).
+        return $client->patch($baseUrl . '/' . $secretId, $payload);
+    }
+
+    protected function ensurePppProfile(string $profileName, ?string $rateLimit, $client): void
+    {
+        if ($profileName === 'default' || $profileName === 'default-encryption') {
+            return;
+        }
+
+        $profileUrl = "http://{$this->router->host}:{$this->router->port}/rest/ppp/profile";
+        $lookup = $client->get($profileUrl, ['name' => $profileName]);
+
+        if (!$lookup->successful()) {
+            throw new RuntimeException("Gagal memeriksa PPP Profile {$profileName}: HTTP {$lookup->status()} {$lookup->body()}");
+        }
+
+        $profileExists = collect($lookup->json())
+            ->contains(fn (array $item) => ($item['name'] ?? null) === $profileName);
+
+        if ($profileExists) {
+            return;
+        }
+
+        $profilePayload = ['name' => $profileName];
+        if ($rateLimit) {
+            $profilePayload['rate-limit'] = $rateLimit;
+        }
+
+        $create = $client->put($profileUrl, $profilePayload);
+        if (!$create->successful()) {
+            throw new RuntimeException("Gagal membuat PPP Profile {$profileName}: HTTP {$create->status()} {$create->body()}");
+        }
     }
 }

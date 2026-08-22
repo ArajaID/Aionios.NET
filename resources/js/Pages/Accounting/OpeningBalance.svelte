@@ -47,10 +47,7 @@
 
     function handleSubmit(e) {
         e.preventDefault();
-        if (!isBalanced) {
-            alert('Posting ditolak! Total Debit dan Total Kredit harus sama (Seimbang).');
-            return;
-        }
+        if (!isBalanced) return;
         form.post('/accounting/opening-balance');
     }
 </script>
@@ -70,7 +67,7 @@
                     Posting Saldo Awal Pembukuan (Opening Balance)
                 </h1>
                 <p class="text-xs text-stone-500 mt-1">
-                    Sesuai PRD Bagian 33: Masukkan saldo awal kas, bank, piutang, hutang, dan modal. Total Debit wajib sama dengan Total Kredit.
+                    Masukkan saldo awal kas, bank, piutang, hutang, dan modal. Total Debit wajib sama dengan Total Kredit.
                 </p>
             </div>
 

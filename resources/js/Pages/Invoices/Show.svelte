@@ -7,7 +7,7 @@
     import CardTitle from '@/Components/ui/card/CardTitle.svelte';
     import CardContent from '@/Components/ui/card/CardContent.svelte';
     import Badge from '@/Components/ui/badge/Badge.svelte';
-    import { Receipt, ArrowLeft, Printer, CreditCard, CheckCircle2, AlertCircle } from 'lucide-svelte';
+    import { Receipt, ArrowLeft, Printer, CreditCard, CheckCircle2, AlertCircle, Calendar } from 'lucide-svelte';
     import { formatRupiah, formatDate } from '@/lib/utils';
 
     let { invoice = {} } = $props();
@@ -73,7 +73,9 @@
 
                 <div class="text-left sm:text-right space-y-1">
                     <h1 class="text-2xl font-black text-stone-900 print:text-black font-mono">TAGIHAN / INVOICE</h1>
-                    <p class="text-xs font-mono font-semibold text-stone-800 print:text-indigo-700">{invoice.invoice_number}</p>
+                    <p class="mt-1 inline-flex rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 font-mono text-xs font-bold tracking-wide text-blue-800 print:border-stone-300 print:bg-white print:text-black">
+                        {invoice.invoice_number}
+                    </p>
                     <div class="pt-2">
                         <Badge
                             variant={invoice.status === 'paid' ? 'success' : invoice.status === 'overdue' ? 'danger' : 'warning'}
@@ -130,7 +132,10 @@
                                 </p>
                             </td>
                             <td class="py-4 text-center">
-                                <Badge variant="outline">{invoice.is_prorata ? 'Prorata' : 'Reguler'}</Badge>
+                                <Badge variant={invoice.is_prorata ? 'purple' : 'outline'}>
+                                    {#if invoice.is_prorata}<Calendar class="h-3 w-3" />{/if}
+                                    {invoice.is_prorata ? 'Prorata' : 'Reguler'}
+                                </Badge>
                             </td>
                             <td class="py-4 text-right font-mono text-stone-700 print:text-stone-800">{formatRupiah(invoice.subtotal)}</td>
                             <td class="py-4 text-right font-mono text-rose-700 print:text-rose-600">

@@ -20,6 +20,24 @@ class AccountingPeriodController extends Controller
         ]);
     }
 
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'period' => ['required', 'string', 'regex:/^\d{4}-\d{2}$/', 'unique:accounting_periods,period'],
+        ]);
+
+        $period = AccountingPeriod::create([
+            'period' => $validated['period'],
+            'status' => 'open',
+        ]);
+
+        AuditService::log('create_accounting_period', 'accounting', 'AccountingPeriod', $period->id, null, [
+            'period' => $period->period,
+        ]);
+
+        return back()->with('success', "Periode akuntansi {$period->period} berhasil dibuka.");
+    }
+
     public function close(Request $request): RedirectResponse
     {
         if (!Auth::user()->isOwner()) {

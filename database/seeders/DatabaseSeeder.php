@@ -35,8 +35,8 @@ class DatabaseSeeder extends Seeder
     {
         // 1. Create Users
         $owner = User::create([
-            'name' => 'Budi Santoso (Owner)',
-            'email' => 'owner@aionios.net',
+            'name' => 'Abdul Rahman Jamil',
+            'email' => 'jamil@aionios.net',
             'password' => Hash::make('password'),
             'role' => 'owner',
             'phone' => '081234567890',
@@ -63,7 +63,7 @@ class DatabaseSeeder extends Seeder
 
         // 2. Application Settings
         $settings = [
-            ['key' => 'company_name', 'value' => 'PT Aionios Solusi Telematika', 'description' => 'Nama Legal Perusahaan'],
+            ['key' => 'company_name', 'value' => 'Aionios.NET', 'description' => 'Nama Legal Perusahaan'],
             ['key' => 'app_brand_name', 'value' => 'Aionios.NET', 'description' => 'Nama Brand Sistem ISP'],
             ['key' => 'company_address', 'value' => 'Cyber Building 2 Lt. 12, Jl. HR Rasuna Said, Jakarta', 'description' => 'Alamat Perusahaan'],
             ['key' => 'company_phone', 'value' => '(021) 555-0199 / 0812-9988-7766', 'description' => 'Nomor Kontak Layanan'],

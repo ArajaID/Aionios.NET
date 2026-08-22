@@ -130,13 +130,21 @@
                 {:else}
                     {#each invoices.data as inv}
                         <TableRow>
-                            <TableCell class="font-mono font-semibold text-stone-800">
-                                <Link href={`/invoices/${inv.id}`} class="hover:underline">
-                                    {inv.invoice_number}
-                                </Link>
-                                {#if inv.is_prorata}
-                                    <span class="ml-1 text-[9px] bg-stone-800 text-stone-700 px-1.5 py-0.5 rounded">Prorata</span>
-                                {/if}
+                            <TableCell>
+                                <div class="flex flex-col items-start gap-1.5">
+                                    <Link
+                                        href={`/invoices/${inv.id}`}
+                                        class="inline-flex rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wide text-blue-800 shadow-2xs transition-colors hover:border-blue-300 hover:bg-blue-100"
+                                    >
+                                        {inv.invoice_number}
+                                    </Link>
+                                    {#if inv.is_prorata}
+                                        <span class="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-700">
+                                            <Calendar class="h-2.5 w-2.5" />
+                                            Prorata
+                                        </span>
+                                    {/if}
+                                </div>
                             </TableCell>
 
                             <TableCell>

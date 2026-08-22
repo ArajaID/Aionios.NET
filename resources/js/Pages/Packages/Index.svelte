@@ -10,7 +10,7 @@
     import CardContent from '@/Components/ui/card/CardContent.svelte';
     import Badge from '@/Components/ui/badge/Badge.svelte';
     import Dialog from '@/Components/ui/dialog/Dialog.svelte';
-    import { Package as PackageIcon, Plus, Edit3, CheckCircle2, ArrowRight } from 'lucide-svelte';
+    import { Package as PackageIcon, Plus, Edit3, Trash2, AlertTriangle } from 'lucide-svelte';
     import { formatRupiah } from '@/lib/utils';
 
     let { packages = [] } = $props();
@@ -18,6 +18,8 @@
     let createModalOpen = $state(false);
     let editModalOpen = $state(false);
     let selectedPackage = $state(null);
+    let deleteModalOpen = $state(false);
+    let deleting = $state(false);
 
     const createForm = useForm({
         code: '',
@@ -67,6 +69,22 @@
             onSuccess: () => (editModalOpen = false),
         });
     }
+
+    function openDelete(pkg) {
+        selectedPackage = pkg;
+        deleteModalOpen = true;
+    }
+
+    function handleDelete() {
+        if (!selectedPackage || selectedPackage.customers_count > 0) return;
+
+        deleting = true;
+        router.delete(`/packages/${selectedPackage.id}`, {
+            preserveScroll: true,
+            onSuccess: () => (deleteModalOpen = false),
+            onFinish: () => (deleting = false),
+        });
+    }
 </script>
 
 <AuthenticatedLayout
@@ -98,7 +116,7 @@
                                 <Badge variant={pkg.is_active ? 'success' : 'default'}>
                                     {pkg.is_active ? 'AKTIF' : 'NON-AKTIF'}
                                 </Badge>
-                                <span class="text-xs font-mono text-stone-500 bg-stone-800/80 px-2 py-0.5 rounded border border-stone-300">
+                                <span class="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wide text-cyan-800 shadow-2xs">
                                     {pkg.code}
                                 </span>
                             </div>
@@ -133,10 +151,21 @@
                             <span class="text-lg font-extrabold text-stone-900 font-mono">{formatRupiah(pkg.price)}</span>
                         </div>
 
-                        <Button variant="outline" size="sm" onclick={() => openEdit(pkg)}>
-                            <Edit3 class="h-3.5 w-3.5 mr-1" />
-                            Edit
-                        </Button>
+                        <div class="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onclick={() => openEdit(pkg)}>
+                                <Edit3 class="h-3.5 w-3.5 mr-1" />
+                                Edit
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                onclick={() => openDelete(pkg)}
+                                disabled={pkg.customers_count > 0}
+                                title={pkg.customers_count > 0 ? 'Paket masih digunakan pelanggan' : 'Hapus paket dan PPP Profile MikroTik'}
+                            >
+                                <Trash2 class="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
                     </div>
                 </Card>
             {/each}
@@ -191,6 +220,36 @@
                 </Button>
             </div>
         </form>
+    </Dialog>
+
+    <!-- DELETE MODAL -->
+    <Dialog bind:open={deleteModalOpen} title="Hapus Paket Internet" maxWidth="max-w-md">
+        <div class="space-y-4">
+            <div class="flex gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4">
+                <AlertTriangle class="h-5 w-5 shrink-0 text-rose-600" />
+                <div class="text-xs text-rose-900">
+                    <p class="font-bold">Tindakan ini tidak dapat dibatalkan.</p>
+                    <p class="mt-1 leading-relaxed">
+                        Paket <strong>{selectedPackage?.code}</strong> akan dihapus dari database dan PPP Profile
+                        <strong>{selectedPackage?.ppp_profile}</strong> akan dihapus langsung dari MikroTik jika tidak digunakan paket lain.
+                    </p>
+                </div>
+            </div>
+
+            {#if selectedPackage?.customers_count > 0}
+                <p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    Paket masih digunakan oleh {selectedPackage.customers_count} pelanggan dan tidak dapat dihapus.
+                </p>
+            {/if}
+
+            <div class="flex justify-end gap-2">
+                <Button type="button" variant="outline" onclick={() => (deleteModalOpen = false)}>Batal</Button>
+                <Button type="button" variant="destructive" onclick={handleDelete} disabled={deleting || selectedPackage?.customers_count > 0}>
+                    <Trash2 class="h-4 w-4" />
+                    {deleting ? 'Menghapus...' : 'Hapus Paket & Profile'}
+                </Button>
+            </div>
+        </div>
     </Dialog>
 
     <!-- EDIT MODAL -->

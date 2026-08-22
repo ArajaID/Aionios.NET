@@ -9,12 +9,12 @@
     import CardContent from '@/Components/ui/card/CardContent.svelte';
     import Badge from '@/Components/ui/badge/Badge.svelte';
     import Dialog from '@/Components/ui/dialog/Dialog.svelte';
+    import ConfirmationDialog from '@/Components/ui/confirmation-dialog/ConfirmationDialog.svelte';
     import Tabs from '@/Components/ui/tabs/Tabs.svelte';
     import TabsList from '@/Components/ui/tabs/TabsList.svelte';
     import TabsTrigger from '@/Components/ui/tabs/TabsTrigger.svelte';
     import TabsContent from '@/Components/ui/tabs/TabsContent.svelte';
-    import Alert from '@/Components/ui/alert/Alert.svelte';
-    import { CheckSquare, Check, X, ShieldAlert, TrendingDown, RotateCcw } from 'lucide-svelte';
+    import { CheckSquare, Check, X, TrendingDown, RotateCcw } from 'lucide-svelte';
     import { formatRupiah, formatDate } from '@/lib/utils';
 
     let {
@@ -23,10 +23,14 @@
     } = $props();
 
     let activeTab = $state('expenses');
+    let approveExpenseModalOpen = $state(false);
+    let approveReversalModalOpen = $state(false);
     let rejectExpenseModalOpen = $state(false);
     let rejectReversalModalOpen = $state(false);
     let selectedExpense = $state(null);
     let selectedReversal = $state(null);
+    let approvingExpense = $state(false);
+    let approvingReversal = $state(false);
 
     const rejectExpenseForm = useForm({
         rejection_reason: '',
@@ -37,10 +41,20 @@
     });
 
     // Expenses Actions
-    function approveExpense(exp) {
-        if (confirm(`Setujui pengeluaran ${exp.expense_number} (${formatRupiah(exp.amount)})? Jurnal akan langsung diposting.`)) {
-            router.post(`/expenses/${exp.id}/approve`);
-        }
+    function openApproveExpense(exp) {
+        selectedExpense = exp;
+        approveExpenseModalOpen = true;
+    }
+
+    function confirmApproveExpense() {
+        if (!selectedExpense || approvingExpense) return;
+
+        approvingExpense = true;
+        router.post(`/expenses/${selectedExpense.id}/approve`, {}, {
+            preserveScroll: true,
+            onSuccess: () => (approveExpenseModalOpen = false),
+            onFinish: () => (approvingExpense = false),
+        });
     }
 
     function openRejectExpense(exp) {
@@ -57,10 +71,20 @@
     }
 
     // Reversals Actions
-    function approveReversal(rev) {
-        if (confirm(`Setujui reversal pembayaran ${rev.payment?.payment_number}? Jurnal pembalik akan diposting dan invoice akan kembali berstatus Belum Lunas.`)) {
-            router.post(`/approvals/reversal/${rev.id}/approve`);
-        }
+    function openApproveReversal(rev) {
+        selectedReversal = rev;
+        approveReversalModalOpen = true;
+    }
+
+    function confirmApproveReversal() {
+        if (!selectedReversal || approvingReversal) return;
+
+        approvingReversal = true;
+        router.post(`/approvals/reversal/${selectedReversal.id}/approve`, {}, {
+            preserveScroll: true,
+            onSuccess: () => (approveReversalModalOpen = false),
+            onFinish: () => (approvingReversal = false),
+        });
     }
 
     function openRejectReversal(rev) {
@@ -157,7 +181,7 @@
                                                             variant="success"
                                                             size="sm"
                                                             class="h-7 px-2.5 text-[11px]"
-                                                            onclick={() => approveExpense(exp)}
+                                                            onclick={() => openApproveExpense(exp)}
                                                         >
                                                             <Check class="h-3.5 w-3.5 mr-1" />
                                                             Setujui
@@ -231,7 +255,7 @@
                                                             variant="success"
                                                             size="sm"
                                                             class="h-7 px-2.5 text-[11px]"
-                                                            onclick={() => approveReversal(rev)}
+                                                            onclick={() => openApproveReversal(rev)}
                                                         >
                                                             <Check class="h-3.5 w-3.5 mr-1" />
                                                             Setujui Reversal
@@ -258,6 +282,34 @@
             </TabsContent>
         </Tabs>
     </div>
+
+    <ConfirmationDialog
+        bind:open={approveExpenseModalOpen}
+        title={`Setujui Pengeluaran ${selectedExpense?.expense_number ?? ''}`}
+        confirmLabel="Ya, Setujui & Posting"
+        variant="success"
+        processing={approvingExpense}
+        onconfirm={confirmApproveExpense}
+    >
+        Pengeluaran <strong>{selectedExpense?.expense_number}</strong> sebesar
+        <strong>{formatRupiah(selectedExpense?.amount ?? 0)}</strong> akan disetujui.
+        Jurnal otomatis akan langsung diposting dan saldo
+        <strong>{selectedExpense?.cash_bank_account?.name ?? 'kas/bank'}</strong> akan dikurangi.
+    </ConfirmationDialog>
+
+    <ConfirmationDialog
+        bind:open={approveReversalModalOpen}
+        title={`Setujui Reversal ${selectedReversal?.payment?.payment_number ?? ''}`}
+        confirmLabel="Ya, Setujui Reversal"
+        variant="reversal"
+        processing={approvingReversal}
+        onconfirm={confirmApproveReversal}
+    >
+        Pembayaran <strong>{selectedReversal?.payment?.payment_number}</strong> sebesar
+        <strong>{formatRupiah(selectedReversal?.payment?.gross_amount ?? 0)}</strong> akan dibalik.
+        Jurnal pembalik akan diposting dan invoice pelanggan kembali berstatus
+        <strong>Belum Lunas</strong>.
+    </ConfirmationDialog>
 
     <!-- REJECT EXPENSE MODAL -->
     <Dialog bind:open={rejectExpenseModalOpen} title={`Tolak Pengeluaran ${selectedExpense?.expense_number}`}>

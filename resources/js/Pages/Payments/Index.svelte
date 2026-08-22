@@ -205,10 +205,10 @@
         <Pagination links={payments.links} />
     </div>
 
-    <!-- REVERSAL REQUEST MODAL (PRD Section 23 & 41) -->
+    <!-- Reversal request modal -->
     <Dialog bind:open={reversalModalOpen} title={`Ajukan Reversal Pembayaran ${selectedPayment?.payment_number}`}>
         <form onsubmit={handleReversal} class="space-y-4">
-            <Alert variant="warning" title="Integritas Transaksi (PRD Section 40)">
+            <Alert variant="warning" title="Integritas Transaksi">
                 Transaksi finansial yang telah diposting bersifat <strong>immutable</strong> (tidak dapat diedit/dihapus langsung). Pengajuan reversal memerlukan <strong>persetujuan Owner</strong> untuk membuat jurnal pembalik dan mengembalikan invoice ke status belum lunas.
             </Alert>
 

@@ -12,9 +12,9 @@
     import TableCell from '@/Components/ui/table/TableCell.svelte';
     import Badge from '@/Components/ui/badge/Badge.svelte';
     import Dialog from '@/Components/ui/dialog/Dialog.svelte';
+    import ConfirmationDialog from '@/Components/ui/confirmation-dialog/ConfirmationDialog.svelte';
     import Pagination from '@/Components/ui/pagination/Pagination.svelte';
-    import Alert from '@/Components/ui/alert/Alert.svelte';
-    import { TrendingDown, Plus, Search, Check, X, ShieldAlert } from 'lucide-svelte';
+    import { TrendingDown, Plus, Search, Check, X } from 'lucide-svelte';
     import { formatRupiah, formatDate } from '@/lib/utils';
 
     let {
@@ -27,8 +27,10 @@
     const user = $derived(page.props.auth?.user);
 
     let createModalOpen = $state(false);
+    let approveModalOpen = $state(false);
     let rejectModalOpen = $state(false);
     let selectedExpense = $state(null);
+    let approving = $state(false);
 
     let search = $state(filters.search || '');
     let status = $state(filters.status || '');
@@ -60,10 +62,20 @@
         });
     }
 
-    function approveExpense(exp) {
-        if (confirm(`Setujui pengeluaran ${exp.expense_number} sebesar ${formatRupiah(exp.amount)}? Jurnal otomatis dan pengurangan kas/bank akan diposting.`)) {
-            router.post(`/expenses/${exp.id}/approve`);
-        }
+    function openApprove(exp) {
+        selectedExpense = exp;
+        approveModalOpen = true;
+    }
+
+    function confirmApprove() {
+        if (!selectedExpense || approving) return;
+
+        approving = true;
+        router.post(`/expenses/${selectedExpense.id}/approve`, {}, {
+            preserveScroll: true,
+            onSuccess: () => (approveModalOpen = false),
+            onFinish: () => (approving = false),
+        });
     }
 
     function openReject(exp) {
@@ -92,7 +104,7 @@
                     Beban & Pengeluaran Operasional
                 </h1>
                 <p class="text-xs text-stone-500 mt-1">
-                    Sesuai PRD Bagian 37: Alur Draft &rarr; Pending Approval &rarr; Approved/Rejected oleh Owner. Jurnal dan pengurangan kas/bank terbentuk setelah disetujui.
+                    Alur Draft &rarr; Pending Approval &rarr; Approved/Rejected oleh Owner. Jurnal dan pengurangan kas/bank terbentuk setelah disetujui.
                 </p>
             </div>
 
@@ -202,7 +214,7 @@
                                             variant="success"
                                             size="sm"
                                             class="h-7 px-2 text-[11px]"
-                                            onclick={() => approveExpense(exp)}
+                                            onclick={() => openApprove(exp)}
                                         >
                                             <Check class="h-3 w-3 mr-1" />
                                             Setujui
@@ -282,6 +294,20 @@
             </div>
         </form>
     </Dialog>
+
+    <ConfirmationDialog
+        bind:open={approveModalOpen}
+        title={`Setujui Pengeluaran ${selectedExpense?.expense_number ?? ''}`}
+        confirmLabel="Ya, Setujui & Posting"
+        variant="success"
+        processing={approving}
+        onconfirm={confirmApprove}
+    >
+        Pengeluaran <strong>{selectedExpense?.expense_number}</strong> sebesar
+        <strong>{formatRupiah(selectedExpense?.amount ?? 0)}</strong> akan disetujui.
+        Jurnal otomatis akan diposting dan saldo
+        <strong>{selectedExpense?.cash_bank_account?.name ?? 'kas/bank'}</strong> akan dikurangi.
+    </ConfirmationDialog>
 
     <!-- REJECT EXPENSE MODAL -->
     <Dialog bind:open={rejectModalOpen} title={`Tolak Pengeluaran ${selectedExpense?.expense_number}`}>

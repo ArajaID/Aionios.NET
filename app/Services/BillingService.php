@@ -160,7 +160,7 @@ class BillingService
             'issue_date' => $activationDate,
             'due_date' => $dueDate,
             'subtotal' => $prorataAmount,
-            'discount_amount' => 0, // First bill is ALWAYS normal price (no promo) per PRD
+            'discount_amount' => 0, // First bill always uses the normal price without a promo.
             'total_amount' => $prorataAmount,
             'paid_amount' => 0,
             'status' => 'unpaid',
@@ -172,7 +172,20 @@ class BillingService
     protected function generateInvoiceNumber(Carbon $date): string
     {
         $prefix = 'INV-' . $date->format('Ym') . '-';
-        $count = Invoice::where('invoice_number', 'like', $prefix . '%')->count() + 1;
-        return $prefix . str_pad($count, 4, '0', STR_PAD_LEFT);
+        $latestNumber = Invoice::where('invoice_number', 'like', $prefix . '%')
+            ->orderByDesc('invoice_number')
+            ->value('invoice_number');
+
+        $sequence = 1;
+        if ($latestNumber && preg_match('/^(?:INV-\d{6}-)(\d+)$/', $latestNumber, $matches)) {
+            $sequence = ((int) $matches[1]) + 1;
+        }
+
+        do {
+            $invoiceNumber = $prefix . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+            $sequence++;
+        } while (Invoice::where('invoice_number', $invoiceNumber)->exists());
+
+        return $invoiceNumber;
     }
 }

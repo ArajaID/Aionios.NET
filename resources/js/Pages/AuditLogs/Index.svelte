@@ -40,7 +40,7 @@
                     Log Audit Trail Sistem & Keamanan
                 </h1>
                 <p class="text-xs text-stone-500 mt-1">
-                    Sesuai PRD Bagian 44 & 45: Jejak rekam seluruh perubahan data, aksi finansial, dan intervensi jaringan secara detail & immutable.
+                    Jejak rekam seluruh perubahan data, aksi finansial, dan intervensi jaringan secara detail dan tidak dapat diubah.
                 </p>
             </div>
         </div>

@@ -126,8 +126,11 @@
                 {:else}
                     {#each customers.data as customer}
                         <TableRow>
-                            <TableCell class="font-mono font-semibold text-stone-800">
-                                <Link href={`/customers/${customer.id}`} class="hover:underline">
+                            <TableCell>
+                                <Link
+                                    href={`/customers/${customer.id}`}
+                                    class="inline-flex rounded-md border border-stone-700 bg-stone-800 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wide text-white shadow-sm transition-colors hover:border-stone-600 hover:bg-stone-700"
+                                >
                                     {customer.customer_id}
                                 </Link>
                             </TableCell>

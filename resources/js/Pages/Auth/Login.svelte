@@ -1,5 +1,5 @@
 <script>
-    import { useForm, router } from '@inertiajs/svelte';
+    import { useForm } from '@inertiajs/svelte';
     import GuestLayout from '@/Layouts/GuestLayout.svelte';
     import Button from '@/Components/ui/button/Button.svelte';
     import Input from '@/Components/ui/input/Input.svelte';
@@ -9,9 +9,10 @@
     import CardDescription from '@/Components/ui/card/CardDescription.svelte';
     import CardContent from '@/Components/ui/card/CardContent.svelte';
     import CardFooter from '@/Components/ui/card/CardFooter.svelte';
-    import { Lock, Mail, Shield, Zap, Sparkles } from 'lucide-svelte';
+    import { Eye, EyeOff, Lock, Mail } from 'lucide-svelte';
 
     let { errors = {} } = $props();
+    let passwordVisible = $state(false);
 
     const form = useForm({
         email: '',
@@ -24,10 +25,11 @@
         form.post('/login');
     }
 
-    function quickLogin(role) {
-        router.post('/quick-login', { role });
-    }
 </script>
+
+<svelte:head>
+    <title>Masuk - Aionios.NET</title>
+</svelte:head>
 
 <GuestLayout>
     <div class="space-y-6">
@@ -75,13 +77,27 @@
                         <div class="relative">
                             <Input
                                 id="password"
-                                type="password"
+                                type={passwordVisible ? 'text' : 'password'}
                                 bind:value={form.password}
                                 placeholder="••••••••"
                                 required
-                                class="pl-9"
+                                class="pl-9 pr-10"
                             />
                             <Lock class="absolute left-3 top-2.5 h-4 w-4 text-stone-500" />
+                            <button
+                                type="button"
+                                class="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-stone-500 transition-colors hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-stone-400"
+                                onclick={() => (passwordVisible = !passwordVisible)}
+                                aria-label={passwordVisible ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                                aria-pressed={passwordVisible}
+                                title={passwordVisible ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                            >
+                                {#if passwordVisible}
+                                    <EyeOff class="h-4 w-4" />
+                                {:else}
+                                    <Eye class="h-4 w-4" />
+                                {/if}
+                            </button>
                         </div>
                     </div>
                 </CardContent>
@@ -100,46 +116,6 @@
                     </Button>
                 </CardFooter>
             </form>
-        </Card>
-
-        <!-- Quick Demo Switcher Card -->
-        <Card class="border-stone-200 bg-white p-4">
-            <div class="flex items-center gap-2 mb-3">
-                <Sparkles class="h-4 w-4 text-stone-700" />
-                <h4 class="text-xs font-semibold text-stone-800">Masuk Cepat Demo (Quick Switcher)</h4>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2">
-                <button
-                    type="button"
-                    onclick={() => quickLogin('owner')}
-                    class="flex flex-col items-center justify-center p-2.5 rounded-xl border border-stone-300 bg-stone-800/60 hover:bg-stone-100 hover:border-stone-600 text-stone-800 transition-all text-center group cursor-pointer"
-                >
-                    <Shield class="h-4 w-4 mb-1 text-stone-700 group-hover:scale-110 transition-transform" />
-                    <span class="text-[11px] font-bold">Owner</span>
-                    <span class="text-[9px] text-stone-500">Full Access</span>
-                </button>
-
-                <button
-                    type="button"
-                    onclick={() => quickLogin('admin_keuangan')}
-                    class="flex flex-col items-center justify-center p-2.5 rounded-xl border border-stone-300 bg-stone-800/60 hover:bg-stone-100 hover:border-stone-600 text-stone-800 transition-all text-center group cursor-pointer"
-                >
-                    <Zap class="h-4 w-4 mb-1 text-emerald-700 group-hover:scale-110 transition-transform" />
-                    <span class="text-[11px] font-bold">Finance</span>
-                    <span class="text-[9px] text-stone-500">Billing & COA</span>
-                </button>
-
-                <button
-                    type="button"
-                    onclick={() => quickLogin('admin_jaringan')}
-                    class="flex flex-col items-center justify-center p-2.5 rounded-xl border border-stone-300 bg-stone-800/60 hover:bg-stone-100 hover:border-stone-600 text-stone-800 transition-all text-center group cursor-pointer"
-                >
-                    <Lock class="h-4 w-4 mb-1 text-cyan-800 group-hover:scale-110 transition-transform" />
-                    <span class="text-[11px] font-bold">Network</span>
-                    <span class="text-[9px] text-stone-500">MikroTik & ONT</span>
-                </button>
-            </div>
         </Card>
     </div>
 </GuestLayout>

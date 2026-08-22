@@ -16,10 +16,12 @@ class MikrotikRouter extends Model
         'port',
         'username',
         'password',
+        'timeout',
         'api_type',
         'is_active',
         'status',
         'last_connected_at',
+        'resource_data',
     ];
 
     protected $hidden = [
@@ -28,8 +30,11 @@ class MikrotikRouter extends Model
 
     protected $casts = [
         'port' => 'integer',
+        'timeout' => 'integer',
+        'password' => 'encrypted',
         'is_active' => 'boolean',
         'last_connected_at' => 'datetime',
+        'resource_data' => 'array',
     ];
 
     public function networkLogs(): HasMany

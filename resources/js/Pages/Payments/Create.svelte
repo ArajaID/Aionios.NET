@@ -112,7 +112,7 @@
                             <Badge variant="primary">Step 1 - 2</Badge>
                         </CardTitle>
                         <CardDescription>
-                            Sesuai PRD Bagian 15: Tidak ada cicilan / pembayaran parsial. Pembayaran melunasi seluruh tagihan outstanding sekaligus.
+                            Tidak ada cicilan atau pembayaran parsial. Pembayaran melunasi seluruh tagihan outstanding sekaligus.
                         </CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-4">
@@ -239,7 +239,7 @@
                             </div>
                         </div>
 
-                        <!-- Journal Preview Box (PRD Section 20) -->
+                        <!-- Journal preview box -->
                         <div class="space-y-2">
                             <h4 class="text-xs font-bold text-stone-800 flex items-center gap-1.5">
                                 <FileText class="h-3.5 w-3.5 text-stone-700" />

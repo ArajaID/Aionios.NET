@@ -91,7 +91,7 @@ class CustomerController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        DB::transaction(function () use ($validated, $billingService, $mikrotikService) {
+        $result = DB::transaction(function () use ($validated, $billingService, $mikrotikService) {
             $customer = Customer::create([
                 'customer_id' => $validated['customer_id'],
                 'name' => $validated['name'],
@@ -156,9 +156,17 @@ class CustomerController extends Controller
             ]);
 
             // Register with MikroTik
-            $mikrotikService->createPppSecret($ppp);
+            $mikrotikSynced = $mikrotikService->createPppSecret($ppp);
 
-            // Generate First Prorata Invoice (at normal package price per PRD)
+            if ($mikrotikSynced) {
+                AuditService::log('create_ppp_secret', 'network', 'PppAccount', $ppp->id, null, [
+                    'username' => $ppp->username,
+                    'profile' => $ppp->profile,
+                    'status' => 'synced',
+                ]);
+            }
+
+            // Generate the first prorata invoice using the normal package price.
             $billingService->calculateProrataFirstInvoice($customer, Carbon::parse($validated['activated_at']));
 
             // Status History
@@ -171,9 +179,24 @@ class CustomerController extends Controller
             ]);
 
             AuditService::log('create_customer', 'customers', 'Customer', $customer->id, null, $customer->toArray());
+
+            return [
+                'customer' => $customer,
+                'mikrotik_synced' => $mikrotikSynced,
+            ];
         });
 
-        return redirect()->route('customers.index')->with('success', 'Pelanggan baru berhasil didaftarkan dan diaktifkan.');
+        $response = redirect()->route('customers.index')
+            ->with('success', 'Pelanggan baru berhasil didaftarkan.');
+
+        if ($result['mikrotik_synced']) {
+            return $response->with('info', 'PPP Secret berhasil dibuat langsung di MikroTik.');
+        }
+
+        return $response->with(
+            'warning',
+            'PPP Secret belum berhasil dibuat di MikroTik. Perintah aktivasi telah masuk antrean sinkronisasi dan dapat dicoba ulang dari menu MikroTik RouterOS.'
+        );
     }
 
     public function show(Customer $customer): Response
@@ -276,7 +299,7 @@ class CustomerController extends Controller
         BillingService $billingService,
         MikrotikService $mikrotikService
     ): RedirectResponse {
-        // Critical requirement from PRD Section 9 & 74: Outstanding Balance must be 0!
+        // Reactivation requires the outstanding balance to be zero.
         if ($customer->outstanding_amount > 0) {
             return back()->with('error', 'Reaktivasi ditolak! Pelanggan masih memiliki tunggakan sebesar Rp ' . number_format($customer->outstanding_amount, 0, ',', '.') . '. Seluruh tagihan harus dilunasi terlebih dahulu.');
         }

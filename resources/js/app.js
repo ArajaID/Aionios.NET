@@ -1,5 +1,6 @@
 import { createInertiaApp } from '@inertiajs/svelte';
 import { mount } from 'svelte';
+import GlobalAppLoader from '@/Components/GlobalAppLoader.svelte';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Aionios.NET';
 
@@ -15,9 +16,14 @@ createInertiaApp({
     },
     setup({ el, App, props }) {
         mount(App, { target: el, props });
+
+        let loaderTarget = document.getElementById('global-app-loader');
+        if (!loaderTarget) {
+            loaderTarget = document.createElement('div');
+            loaderTarget.id = 'global-app-loader';
+            document.body.appendChild(loaderTarget);
+            mount(GlobalAppLoader, { target: loaderTarget });
+        }
     },
-    progress: {
-        color: '#6366f1',
-        showSpinner: true,
-    },
+    progress: false,
 });

@@ -9,8 +9,9 @@
     import CardContent from '@/Components/ui/card/CardContent.svelte';
     import Badge from '@/Components/ui/badge/Badge.svelte';
     import Dialog from '@/Components/ui/dialog/Dialog.svelte';
+    import ConfirmationDialog from '@/Components/ui/confirmation-dialog/ConfirmationDialog.svelte';
     import Alert from '@/Components/ui/alert/Alert.svelte';
-    import { Lock, Unlock, Plus, AlertCircle, ShieldAlert } from 'lucide-svelte';
+    import { Lock, Unlock, Plus } from 'lucide-svelte';
     import { formatDate } from '@/lib/utils';
 
     let { periods = [] } = $props();
@@ -18,15 +19,17 @@
     const user = $derived(page.props.auth?.user);
 
     let createModalOpen = $state(false);
+    let closeModalOpen = $state(false);
     let reopenModalOpen = $state(false);
     let selectedPeriod = $state(null);
+    let closing = $state(false);
 
     const createForm = useForm({
         period: new Date().toISOString().slice(0, 7),
     });
 
     const reopenForm = useForm({
-        reason: '',
+        reopen_reason: '',
     });
 
     function handleCreate(e) {
@@ -36,15 +39,25 @@
         });
     }
 
-    function closePeriod(period) {
-        if (confirm(`Yakin ingin mengunci/tutup buku periode ${period.period}? Seluruh transaksi tanggal lampau pada periode ini akan diblokir dari perubahan.`)) {
-            router.post(`/accounting/periods/${period.id}/close`);
-        }
+    function openClosePeriod(period) {
+        selectedPeriod = period;
+        closeModalOpen = true;
+    }
+
+    function confirmClosePeriod() {
+        if (!selectedPeriod || closing) return;
+
+        closing = true;
+        router.post('/accounting/periods/close', { period: selectedPeriod.period }, {
+            preserveScroll: true,
+            onSuccess: () => (closeModalOpen = false),
+            onFinish: () => (closing = false),
+        });
     }
 
     function openReopen(period) {
         selectedPeriod = period;
-        reopenForm.reason = '';
+        reopenForm.reopen_reason = '';
         reopenModalOpen = true;
     }
 
@@ -68,14 +81,16 @@
                     Kunci Periode & Tutup Buku (Period Locking)
                 </h1>
                 <p class="text-xs text-stone-500 mt-1">
-                    Sesuai PRD Bagian 42 & 43: Cegah modifikasi atau penambahan transaksi pada periode akuntansi yang telah ditutup.
+                    Cegah modifikasi atau penambahan transaksi pada periode akuntansi yang telah ditutup.
                 </p>
             </div>
 
-            <Button variant="default" size="sm" onclick={() => (createModalOpen = true)}>
-                <Plus class="h-4 w-4 mr-1" />
-                Buka Periode Baru
-            </Button>
+            {#if user?.role === 'owner'}
+                <Button variant="default" size="sm" onclick={() => (createModalOpen = true)}>
+                    <Plus class="h-4 w-4 mr-1" />
+                    Buka Periode Baru
+                </Button>
+            {/if}
         </div>
 
         <Alert variant="warning" title="Aturan Period Locking">
@@ -119,17 +134,17 @@
                                             {p.closer?.name || '-'}
                                         </td>
                                         <td class="py-3 px-4 text-right">
-                                            {#if p.status === 'open'}
+                                            {#if p.status === 'open' && user?.role === 'owner'}
                                                 <Button
                                                     variant="destructive"
                                                     size="sm"
                                                     class="h-7 px-2.5 text-[11px]"
-                                                    onclick={() => closePeriod(p)}
+                                                    onclick={() => openClosePeriod(p)}
                                                 >
                                                     <Lock class="h-3 w-3 mr-1" />
                                                     Tutup & Kunci Periode
                                                 </Button>
-                                            {:else if user?.role === 'owner'}
+                                            {:else if p.status === 'closed' && user?.role === 'owner'}
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
@@ -140,7 +155,9 @@
                                                     Buka Kunci (Reopen)
                                                 </Button>
                                             {:else}
-                                                <span class="text-stone-500 text-[11px]">Terkunci (Hanya Owner)</span>
+                                                <span class="text-stone-500 text-[11px]">
+                                                    {p.status === 'open' ? 'Terbuka (Hanya Owner dapat menutup)' : 'Terkunci (Hanya Owner)'}
+                                                </span>
                                             {/if}
                                         </td>
                                     </tr>
@@ -152,6 +169,18 @@
             </CardContent>
         </Card>
     </div>
+
+    <ConfirmationDialog
+        bind:open={closeModalOpen}
+        title={`Tutup & Kunci Periode ${selectedPeriod?.period ?? ''}`}
+        confirmLabel="Ya, Tutup Periode"
+        variant="destructive"
+        processing={closing}
+        onconfirm={confirmClosePeriod}
+    >
+        Periode <strong>{selectedPeriod?.period}</strong> akan dikunci. Seluruh penambahan dan
+        perubahan transaksi pada periode ini akan diblokir untuk menjaga integritas laporan.
+    </ConfirmationDialog>
 
     <!-- CREATE PERIOD MODAL -->
     <Dialog bind:open={createModalOpen} title="Buka Periode Akuntansi Baru">
@@ -179,7 +208,7 @@
 
             <div class="space-y-1.5">
                 <label for="reopen_reason" class="text-xs font-semibold text-stone-700">Alasan Reopen (Wajib)</label>
-                <Input id="reopen_reason" bind:value={reopenForm.reason} placeholder="e.g. Koreksi pembukuan atas temuan audit..." required />
+                <Input id="reopen_reason" bind:value={reopenForm.reopen_reason} placeholder="e.g. Koreksi pembukuan atas temuan audit..." required />
             </div>
 
             <div class="flex justify-end gap-2 pt-4">

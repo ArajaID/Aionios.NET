@@ -1,58 +1,101 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Aionios.NET
+**Sistem Billing Terintegrasi & Pembukuan Akuntansi Berpasangan ISP (Internet Service Provider)**
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aionios.NET adalah platform operasional ISP dan manajemen keuangan end-to-end yang dibangun dengan standar enterprise. Mengintegrasikan manajemen pelanggan internet, sinkronisasi MikroTik RouterOS 7.24 (dengan antrean sinkronisasi offline aman), siklus billing otomatis, pembayaran QRIS dengan kalkulasi MDR, serta sistem akuntansi pembukuan berpasangan (double-entry bookkeeping) yang patuh PSAK.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🚀 Fitur Utama
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### 1. Manajemen Pelanggan & Paket Internet
+- Database pelanggan dengan riwayat status lengkap (Aktif, Isolir, Putus Berlangganan).
+- Manajemen paket internet bertingkat & sistem diskon/promo berbatas waktu.
+- Pelacakan inventori modem ONT dan riwayat perpindahan perangkat.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 2. Integrasi MikroTik RouterOS (v7.24 Stable)
+- Sinkronisasi REST / API Socket ke Router MikroTik.
+- Manajemen PPPoE Secrets & profil isolir/unisolir otomatis.
+- **Offline Network Jobs Queue**: Jika router mati/koneksi putus, seluruh perintah aktivasi dan isolir tersimpan di antrean dan otomatis dieksekusi saat koneksi pulih.
 
-## Learning Laravel
+### 3. Billing & Penagihan Otomatis
+- Pembuatan tagihan massal otomatis setiap tanggal 1 (termasuk kalkulasi prorata untuk aktivasi pertengahan bulan).
+- Jatuh tempo tanggal 22 & eksekusi isolir otomatis tanggal 23 pukul 01:00 WIB.
+- Konfirmasi pembayaran manual & QRIS dengan auto-reconciliation dan pencatatan potongan MDR.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 4. Akuntansi Double-Entry & Laporan Keuangan Standar
+- Bagan Akun Standar (Chart of Accounts / COA) dengan hierarki 4 digit.
+- Pembuatan ayat jurnal umum otomatis (Real-Time Journal Posting) untuk setiap transaksi billing, beban operasional, penerimaan kas, dan modal.
+- Buku Besar (General Ledger) dengan saldo berjalan pergerakan debit/kredit.
+- Neraca Saldo (Trial Balance) dan Kunci Periode Akuntansi.
+- 6 Laporan Keuangan Standar:
+  1. **Laporan Laba Rugi (Income Statement)**
+  2. **Neraca Keuangan (Balance Sheet)**
+  3. **Laporan Arus Kas Langsung (Direct Cash Flow)**
+  4. **Laporan Perubahan Modal (Equity Changes)**
+  5. **Laporan Umur Piutang (Aging Receivables)**
+  6. **Laporan Rekonsiliasi Pendapatan & MDR QRIS**
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 5. Keamanan, Governance & Audit Trail
+- 3 Role Akun Pengguna: **Owner / Super Admin**, **Admin Jaringan**, **Admin Keuangan**.
+- Workflow Persetujuan (Approval) khusus Owner untuk pengeluaran besar dan reversal pembayaran.
+- Catatan audit menyeluruh (*immutable audit trail*) untuk semua aksi krusial.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+---
 
-## Agentic Development
+## 🛠️ Tech Stack
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+- **Backend**: Laravel 13 (PHP 8.2+)
+- **Frontend**: Svelte 5 (Runes Architecture) + Inertia.js v3
+- **Styling**: TailwindCSS & Custom **Light Stone Design System** (Warm stone neutrals, crisp white surfaces, high-contrast typography)
+- **UI Components**: Shadcn-Svelte architecture
+- **Database**: MySQL / SQLite
+- **Icons**: Lucide Svelte
 
-```bash
-composer require laravel/boost --dev
+---
 
-php artisan boost:install
-```
+## 📦 Panduan Instalasi & Menjalankan Aplikasi
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+1. **Clone repositori**:
+   ```bash
+   git clone https://github.com/ArajaID/Aionios.NET.git
+   cd Aionios.NET
+   ```
 
-## Contributing
+2. **Install PHP & Node Dependencies**:
+   ```bash
+   composer install
+   npm install
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+3. **Konfigurasi Environment**:
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
-## Code of Conduct
+4. **Migrasi Database & Seed Data Demo**:
+   ```bash
+   php artisan migrate:fresh --seed
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+5. **Build Assets & Jalankan Server**:
+   ```bash
+   npm run build
+   php artisan serve
+   ```
+   Aplikasi akan berjalan di `http://127.0.0.1:8000`.
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 🔑 Akun Demo Login
 
-## License
+| Role | Email | Password |
+|---|---|---|
+| **Owner / Super Admin** | `owner@aionios.net` | `password` |
+| **Admin Jaringan** | `jaringan@aionios.net` | `password` |
+| **Admin Keuangan** | `keuangan@aionios.net` | `password` |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## 📄 Lisensi
+Hak Cipta © 2026 PT Aionios Solusi Telematika. Seluruh hak cipta dilindungi undang-undang.

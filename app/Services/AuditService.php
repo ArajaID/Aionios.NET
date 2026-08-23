@@ -26,6 +26,8 @@ class AuditService
             'new_values' => $newValues,
             'ip_address' => Request::ip(),
             'user_agent' => Request::userAgent(),
+            'source' => Request::is('api/*') ? 'MOBILE' : 'WEB',
+            'request_id' => Request::instance()->attributes->get('request_id'),
         ]);
     }
 }

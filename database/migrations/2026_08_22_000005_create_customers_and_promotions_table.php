@@ -18,7 +18,7 @@ return new class extends Migration
             $table->date('activated_at')->nullable();
             $table->foreignId('package_id')->constrained('packages');
             $table->foreignId('ont_id')->nullable()->constrained('onts')->nullOnDelete();
-            $table->enum('status', ['active', 'isolated', 'terminated'])->default('active');
+            $table->enum('status', ['pending', 'active', 'isolated', 'terminated'])->default('pending');
             $table->text('notes')->nullable();
             $table->timestamps();
         });

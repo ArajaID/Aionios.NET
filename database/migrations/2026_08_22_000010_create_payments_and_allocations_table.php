@@ -28,7 +28,7 @@ return new class extends Migration
         Schema::create('payment_allocations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('payment_id')->constrained('payments')->cascadeOnDelete();
-            $table->foreignId('invoice_id')->constrained('invoices')->cascadeOnDelete();
+            $table->foreignId('invoice_id')->unique()->constrained('invoices')->cascadeOnDelete();
             $table->decimal('amount', 14, 2);
             $table->timestamps();
         });

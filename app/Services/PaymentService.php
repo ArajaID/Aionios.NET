@@ -6,6 +6,7 @@ use App\Models\ApplicationSetting;
 use App\Models\CashBankAccount;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\NetworkJob;
 use App\Models\Notification;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
@@ -14,16 +15,26 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Throwable;
 
 class PaymentService
 {
     protected AccountingService $accountingService;
+
     protected MikrotikService $mikrotikService;
 
-    public function __construct(AccountingService $accountingService, MikrotikService $mikrotikService)
-    {
+    protected NetworkQueueService $networkQueueService;
+
+    public function __construct(
+        AccountingService $accountingService,
+        MikrotikService $mikrotikService,
+        NetworkQueueService $networkQueueService
+    ) {
         $this->accountingService = $accountingService;
         $this->mikrotikService = $mikrotikService;
+        $this->networkQueueService = $networkQueueService;
     }
 
     public function previewPayment(
@@ -33,6 +44,17 @@ class PaymentService
         ?float $customMdr = null
     ): array {
         $unpaidInvoices = $customer->unpaidInvoices()->orderBy('period')->get();
+
+        return $this->buildPreview($customer, $method, $cashBankAccountId, $customMdr, $unpaidInvoices);
+    }
+
+    private function buildPreview(
+        Customer $customer,
+        string $method,
+        int $cashBankAccountId,
+        ?float $customMdr,
+        $unpaidInvoices
+    ): array {
         if ($unpaidInvoices->isEmpty()) {
             throw new Exception("Pelanggan {$customer->name} tidak memiliki tagihan outstanding.");
         }
@@ -101,15 +123,21 @@ class PaymentService
         ?float $customMdr = null,
         ?string $notes = null
     ): Payment {
-        $preview = $this->previewPayment($customer, $method, $cashBankAccountId, $customMdr);
+        $wasIsolated = $customer->fresh()->status === 'isolated';
 
-        return DB::transaction(function () use ($customer, $method, $cashBankAccountId, $paymentDate, $notes, $preview) {
-            $count = Payment::whereDate('payment_date', $paymentDate->toDateString())->count() + 1;
-            $paymentNumber = 'PAY-' . $paymentDate->format('Ymd') . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+        $payment = DB::transaction(function () use ($customer, $method, $cashBankAccountId, $paymentDate, $notes, $customMdr) {
+            $lockedCustomer = Customer::whereKey($customer->id)->lockForUpdate()->firstOrFail();
+            $lockedInvoices = Invoice::where('customer_id', $lockedCustomer->id)
+                ->whereIn('status', ['unpaid', 'overdue'])
+                ->orderBy('period')
+                ->lockForUpdate()
+                ->get();
+            $preview = $this->buildPreview($lockedCustomer, $method, $cashBankAccountId, $customMdr, $lockedInvoices);
+            $paymentNumber = 'PAY-'.$paymentDate->format('Ymd').'-'.Str::upper(Str::random(10));
 
             $payment = Payment::create([
                 'payment_number' => $paymentNumber,
-                'customer_id' => $customer->id,
+                'customer_id' => $lockedCustomer->id,
                 'payment_date' => $paymentDate,
                 'payment_method' => $method,
                 'cash_bank_account_id' => $cashBankAccountId,
@@ -140,10 +168,6 @@ class PaymentService
             $this->accountingService->postPaymentJournal($payment);
 
             // If customer was isolated, trigger auto-unisolate
-            if ($customer->status === 'isolated') {
-                $this->mikrotikService->unisolateCustomer($customer);
-            }
-
             AuditService::log(
                 'create_payment',
                 'payments',
@@ -157,18 +181,44 @@ class PaymentService
                 'role' => 'admin_keuangan',
                 'type' => 'success',
                 'title' => 'Pembayaran Berhasil Dicatat',
-                'message' => "Pembayaran {$payment->payment_number} pelanggan {$customer->name} sebesar Rp " . number_format($payment->gross_amount, 0, ',', '.') . " berhasil diposting.",
+                'message' => "Pembayaran {$payment->payment_number} pelanggan {$lockedCustomer->name} sebesar Rp ".number_format($payment->gross_amount, 0, ',', '.').' berhasil diposting.',
                 'link' => '/payments',
             ]);
 
             return $payment;
         });
+
+        if ($wasIsolated) {
+            try {
+                DB::transaction(fn () => $this->networkQueueService->queueCustomer(
+                    Customer::whereKey($customer->id)->lockForUpdate()->firstOrFail(),
+                    'unisolate',
+                ));
+            } catch (Throwable $e) {
+                Log::error("Payment {$payment->payment_number} posted but unisolate queueing failed: {$e->getMessage()}");
+                try {
+                    NetworkJob::create([
+                        'command' => 'unisolate',
+                        'target_type' => 'customer',
+                        'target_id' => $customer->id,
+                        'payload' => [],
+                        'status' => 'failed',
+                        'attempts' => 0,
+                        'error_message' => mb_substr($e->getMessage(), 0, 1000),
+                    ]);
+                } catch (Throwable $jobError) {
+                    Log::error("Unable to persist failed unisolate job for payment {$payment->payment_number}: {$jobError->getMessage()}");
+                }
+            }
+        }
+
+        return $payment;
     }
 
     public function approveReversal(ReversalRequest $request): void
     {
         if ($request->transaction_type !== 'payment') {
-            throw new Exception("Hanya pembayaran yang didukung untuk alur reversal ini saat ini.");
+            throw new Exception('Hanya pembayaran yang didukung untuk alur reversal ini saat ini.');
         }
 
         DB::transaction(function () use ($request) {

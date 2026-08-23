@@ -127,7 +127,7 @@ class BillingService
         ];
     }
 
-    public function calculateProrataFirstInvoice(Customer $customer, Carbon $activationDate): Invoice
+    public function calculateProrataFirstInvoice(Customer $customer, Carbon $activationDate, bool $isFree = false): Invoice
     {
         $package = $customer->package;
         $normalPrice = (float) $package->price;
@@ -136,7 +136,7 @@ class BillingService
         // Inclusive active days: from activation day to last day of month
         $activeDays = ($daysInMonth - $activationDate->day) + 1;
 
-        $prorataAmount = round(($normalPrice / $daysInMonth) * $activeDays, 2);
+        $prorataAmount = $isFree ? 0.0 : round(($normalPrice / $daysInMonth) * $activeDays, 2);
         $period = $activationDate->format('Y-m');
         $dueDate = $activationDate->copy()->addDays(7); // 7 days grace period for initial bill
 
@@ -149,8 +149,8 @@ class BillingService
             'days_in_month' => $daysInMonth,
             'active_days' => $activeDays,
             'activation_date' => $activationDate->toDateString(),
-            'formula' => "{$normalPrice} / {$daysInMonth} * {$activeDays} = {$prorataAmount}",
-            'calculation_type' => 'prorata_first_bill',
+            'formula' => $isFree ? 'Peralihan / Migrasi Sistem (Rp 0 - Otomatis Lunas)' : "{$normalPrice} / {$daysInMonth} * {$activeDays} = {$prorataAmount}",
+            'calculation_type' => $isFree ? 'migration_free_first_bill' : 'prorata_first_bill',
         ];
 
         return Invoice::create([
@@ -162,8 +162,8 @@ class BillingService
             'subtotal' => $prorataAmount,
             'discount_amount' => 0, // First bill always uses the normal price without a promo.
             'total_amount' => $prorataAmount,
-            'paid_amount' => 0,
-            'status' => 'unpaid',
+            'paid_amount' => $prorataAmount <= 0 ? 0 : 0,
+            'status' => $prorataAmount <= 0 ? 'paid' : 'unpaid',
             'is_prorata' => true,
             'snapshot_data' => $snapshot,
         ]);

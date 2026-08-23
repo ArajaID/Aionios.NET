@@ -89,6 +89,7 @@ class CustomerController extends Controller
             'ppp_password' => 'required|string',
             'promotion_id' => 'nullable|exists:promotions,id',
             'notes' => 'nullable|string',
+            'first_invoice_mode' => 'nullable|in:prorata,free_lunas,skip',
         ]);
 
         $result = DB::transaction(function () use ($validated, $billingService, $mikrotikService) {
@@ -166,8 +167,14 @@ class CustomerController extends Controller
                 ]);
             }
 
-            // Generate the first prorata invoice using the normal package price.
-            $billingService->calculateProrataFirstInvoice($customer, Carbon::parse($validated['activated_at']));
+            // Generate the first invoice based on mode (prorata, free_lunas, or skip)
+            $firstInvoiceMode = $validated['first_invoice_mode'] ?? 'prorata';
+            if ($firstInvoiceMode === 'prorata') {
+                $billingService->calculateProrataFirstInvoice($customer, Carbon::parse($validated['activated_at']), isFree: false);
+            } elseif ($firstInvoiceMode === 'free_lunas') {
+                $billingService->calculateProrataFirstInvoice($customer, Carbon::parse($validated['activated_at']), isFree: true);
+            }
+            // If 'skip', no initial bill is created; monthly billing will start automatically next month.
 
             // Status History
             CustomerStatusHistory::create([

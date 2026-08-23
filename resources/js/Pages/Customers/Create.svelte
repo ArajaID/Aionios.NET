@@ -34,6 +34,7 @@
         ppp_username: '',
         ppp_password: 'user' + Math.floor(1000 + Math.random() * 9000),
         promotion_id: '',
+        first_invoice_mode: 'prorata',
         notes: '',
     });
 
@@ -163,6 +164,18 @@
                                 </option>
                             {/each}
                         </Select>
+                    </div>
+
+                    <div class="space-y-1.5 sm:col-span-2 pt-2 border-t border-stone-200">
+                        <label for="first_invoice_mode" class="text-xs font-semibold text-stone-700">Skema Tagihan Pertama (Billing Awal / Peralihan)</label>
+                        <Select id="first_invoice_mode" bind:value={form.first_invoice_mode}>
+                            <option value="prorata">Tagihan Prorata Normal (Pelanggan Baru)</option>
+                            <option value="free_lunas">Peralihan / Migrasi (Rp 0 & Otomatis Lunas - Sudah Bayar di Sistem Lama)</option>
+                            <option value="skip">Lewati Tagihan Bulan Ini (Tagihan baru mulai terbit tgl 1 bulan depan)</option>
+                        </Select>
+                        <p class="text-[11px] text-stone-500">
+                            Pilih <strong>Peralihan / Migrasi (Rp 0)</strong> jika pelanggan lama sedang dimigrasikan ke Aionios.NET dan sudah membayar iuran bulan ini, sehingga tidak ditagih ulang.
+                        </p>
                     </div>
                 </CardContent>
             </Card>

@@ -23,7 +23,7 @@ class ProductionSeeder extends Seeder
             ['email' => 'jamil@aionios.net'],
             [
                 'name' => 'Abdul Rahman Jamil',
-                'password' => Hash::make('aioniosisthenest'),
+                'password' => Hash::make('aioniosisthebest'),
                 'role' => 'owner',
                 'is_active' => true,
             ]

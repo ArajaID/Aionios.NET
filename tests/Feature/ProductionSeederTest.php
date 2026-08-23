@@ -17,7 +17,7 @@ test('production seeder creates one owner account and application settings', fun
         ->and($owner->email)->toBe('jamil@aionios.net')
         ->and($owner->role)->toBe('owner')
         ->and($owner->is_active)->toBeTrue()
-        ->and(Hash::check('aioniosisthenest', $owner->password))->toBeTrue()
+        ->and(Hash::check('aioniosisthebest', $owner->password))->toBeTrue()
         ->and(ApplicationSetting::where('key', 'app_brand_name')->value('value'))->toBe('Aionios.NET')
         ->and(ApplicationSetting::where('key', 'auto_isolate_time')->value('value'))->toBe('01:00')
         ->and(ApplicationSetting::count())->toBe(10);

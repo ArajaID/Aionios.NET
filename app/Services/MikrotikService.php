@@ -432,7 +432,35 @@ class MikrotikService
 
             $this->ensurePppProfile($payload['profile'] ?? 'default', $rateLimit, $client);
 
-            return $client->put($baseUrl, $payload);
+            $username = $payload['name'] ?? null;
+            if ($username) {
+                $lookup = $client->get($baseUrl, ['name' => $username]);
+                if ($lookup->successful()) {
+                    $existing = collect($lookup->json())->first(fn (array $item) => ($item['name'] ?? null) === $username);
+                    if ($existing && isset($existing['.id'])) {
+                        $secretId = $existing['.id'];
+                        $patchPayload = $payload;
+                        unset($patchPayload['name']);
+                        return $client->patch($baseUrl . '/' . $secretId, $patchPayload);
+                    }
+                }
+            }
+
+            $putResponse = $client->put($baseUrl, $payload);
+            if (!$putResponse->successful() && str_contains($putResponse->body(), 'already exists') && $username) {
+                $lookup = $client->get($baseUrl, ['name' => $username]);
+                if ($lookup->successful()) {
+                    $existing = collect($lookup->json())->first(fn (array $item) => ($item['name'] ?? null) === $username);
+                    if ($existing && isset($existing['.id'])) {
+                        $secretId = $existing['.id'];
+                        $patchPayload = $payload;
+                        unset($patchPayload['name']);
+                        return $client->patch($baseUrl . '/' . $secretId, $patchPayload);
+                    }
+                }
+            }
+
+            return $putResponse;
         }
 
         $username = $payload['username'] ?? $payload['name'] ?? null;

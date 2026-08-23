@@ -3,19 +3,22 @@
     import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.svelte';
     import Button from '@/Components/ui/button/Button.svelte';
     import Input from '@/Components/ui/input/Input.svelte';
+    import Select from '@/Components/ui/select/Select.svelte';
     import Card from '@/Components/ui/card/Card.svelte';
     import CardHeader from '@/Components/ui/card/CardHeader.svelte';
     import CardTitle from '@/Components/ui/card/CardTitle.svelte';
     import CardContent from '@/Components/ui/card/CardContent.svelte';
     import { ArrowLeft, Save, Edit3 } from 'lucide-svelte';
+    import { formatRupiah } from '@/lib/utils';
 
-    let { customer = {}, errors = {} } = $props();
+    let { customer = {}, packages = [], errors = {} } = $props();
 
     const form = useForm({
         name: customer.name || '',
         phone: customer.phone || '',
         address: customer.address || '',
         notes: customer.notes || '',
+        package_id: customer.package_id || packages[0]?.id || '',
     });
 
     function handleSubmit(e) {
@@ -78,6 +81,23 @@
                         {#if errors.address}
                             <p class="text-xs text-rose-700">{errors.address}</p>
                         {/if}
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label for="package_id" class="text-xs font-semibold text-stone-700">Paket Internet Langganan</label>
+                        <Select id="package_id" bind:value={form.package_id} required>
+                            {#each packages as pkg}
+                                <option value={pkg.id}>
+                                    {pkg.name} ({pkg.download_speed_mbps} Mbps) - {formatRupiah(pkg.price)}/bln
+                                </option>
+                            {/each}
+                        </Select>
+                        {#if errors.package_id}
+                            <p class="text-xs text-rose-700">{errors.package_id}</p>
+                        {/if}
+                        <p class="text-[11px] text-stone-500">
+                            Mengubah paket di sini akan otomatis memperbarui PPP Profile di MikroTik dan nominal tagihan bulan berikutnya.
+                        </p>
                     </div>
 
                     <div class="space-y-1.5">

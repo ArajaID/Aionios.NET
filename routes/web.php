@@ -67,6 +67,8 @@ Route::middleware('auth')->group(function () {
     // Billing & Invoices
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
+    Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
     Route::post('/invoices/generate', [InvoiceController::class, 'generate'])->name('invoices.generate');
 
     // Payments & MDR

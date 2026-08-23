@@ -1,19 +1,50 @@
 <script>
-    import { Link } from '@inertiajs/svelte';
+    import { useForm, router, Link } from '@inertiajs/svelte';
     import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.svelte';
     import Button from '@/Components/ui/button/Button.svelte';
+    import Input from '@/Components/ui/input/Input.svelte';
     import Card from '@/Components/ui/card/Card.svelte';
     import CardHeader from '@/Components/ui/card/CardHeader.svelte';
     import CardTitle from '@/Components/ui/card/CardTitle.svelte';
+    import CardDescription from '@/Components/ui/card/CardDescription.svelte';
     import CardContent from '@/Components/ui/card/CardContent.svelte';
+    import CardFooter from '@/Components/ui/card/CardFooter.svelte';
     import Badge from '@/Components/ui/badge/Badge.svelte';
-    import { Receipt, ArrowLeft, Printer, CreditCard, CheckCircle2, AlertCircle, Calendar } from 'lucide-svelte';
+    import { Receipt, ArrowLeft, Printer, CreditCard, CheckCircle2, AlertCircle, Calendar, Edit3, Trash2, X, Save } from 'lucide-svelte';
     import { formatRupiah, formatDate } from '@/lib/utils';
 
     let { invoice = {} } = $props();
 
+    let adjustModalOpen = $state(false);
+
+    const adjustForm = useForm({
+        subtotal: invoice.subtotal || 0,
+        discount_amount: invoice.discount_amount || 0,
+        notes: 'Penyesuaian nominal tagihan',
+    });
+
+    const calculatedTotal = $derived(
+        Math.max(0, Number(adjustForm.subtotal || 0) - Number(adjustForm.discount_amount || 0))
+    );
+
     function handlePrint() {
         window.print();
+    }
+
+    function handleAdjustSubmit(e) {
+        e.preventDefault();
+        adjustForm.put(`/invoices/${invoice.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                adjustModalOpen = false;
+            },
+        });
+    }
+
+    function handleDeleteInvoice() {
+        if (confirm(`Apakah Anda yakin ingin menghapus tagihan ${invoice.invoice_number}? Aksi ini tidak dapat dibatalkan.`)) {
+            router.delete(`/invoices/${invoice.id}`);
+        }
     }
 </script>
 
@@ -36,6 +67,16 @@
 
             <div class="flex items-center gap-2">
                 {#if invoice.status !== 'paid'}
+                    <Button variant="outline" size="sm" onclick={() => (adjustModalOpen = true)}>
+                        <Edit3 class="h-3.5 w-3.5 mr-1" />
+                        Sesuaikan Nominal
+                    </Button>
+
+                    <Button variant="destructive" size="sm" onclick={handleDeleteInvoice}>
+                        <Trash2 class="h-3.5 w-3.5 mr-1" />
+                        Hapus Tagihan
+                    </Button>
+
                     <Link href={`/payments/create?customer_id=${invoice.customer_id}`}>
                         <Button variant="default" size="sm">
                             <CreditCard class="h-3.5 w-3.5 mr-1" />
@@ -50,6 +91,99 @@
                 </Button>
             </div>
         </div>
+
+        <!-- Adjustment Modal -->
+        {#if adjustModalOpen}
+            <div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 sm:p-6 no-print">
+                <button
+                    type="button"
+                    class="fixed inset-0 cursor-default bg-stone-900/60 backdrop-blur-xs"
+                    onclick={() => (adjustModalOpen = false)}
+                    aria-label="Tutup modal"
+                ></button>
+
+                <Card class="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto shadow-2xl">
+                    <form onsubmit={handleAdjustSubmit}>
+                        <CardHeader>
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <CardTitle class="flex items-center gap-2">
+                                        <Edit3 class="h-4 w-4 text-stone-800" />
+                                        Sesuaikan Nominal Tagihan
+                                    </CardTitle>
+                                    <CardDescription class="mt-1">
+                                        Ubah subtotal atau diskon untuk tagihan {invoice.invoice_number}. Jika total menjadi Rp 0, tagihan otomatis berstatus Lunas.
+                                    </CardDescription>
+                                </div>
+                                <button
+                                    type="button"
+                                    onclick={() => (adjustModalOpen = false)}
+                                    class="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+                                    aria-label="Tutup"
+                                >
+                                    <X class="h-4 w-4" />
+                                </button>
+                            </div>
+                        </CardHeader>
+
+                        <CardContent class="space-y-4">
+                            <div class="space-y-1.5">
+                                <label for="adj_subtotal" class="text-xs font-semibold text-stone-700">Subtotal Tagihan (Rp)</label>
+                                <Input
+                                    id="adj_subtotal"
+                                    type="number"
+                                    min="0"
+                                    step="1000"
+                                    bind:value={adjustForm.subtotal}
+                                    required
+                                />
+                                {#if adjustForm.errors.subtotal}
+                                    <p class="text-xs text-rose-700">{adjustForm.errors.subtotal}</p>
+                                {/if}
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <label for="adj_discount" class="text-xs font-semibold text-stone-700">Potongan Diskon (Rp)</label>
+                                <Input
+                                    id="adj_discount"
+                                    type="number"
+                                    min="0"
+                                    step="1000"
+                                    bind:value={adjustForm.discount_amount}
+                                />
+                                {#if adjustForm.errors.discount_amount}
+                                    <p class="text-xs text-rose-700">{adjustForm.errors.discount_amount}</p>
+                                {/if}
+                            </div>
+
+                            <div class="rounded-xl border border-stone-200 bg-stone-50 p-3 flex justify-between items-center text-xs">
+                                <span class="font-semibold text-stone-600">Total Tagihan Baru:</span>
+                                <span class="font-mono font-bold text-base text-stone-900">{formatRupiah(calculatedTotal)}</span>
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <label for="adj_notes" class="text-xs font-semibold text-stone-700">Alasan / Catatan Penyesuaian</label>
+                                <Input
+                                    id="adj_notes"
+                                    bind:value={adjustForm.notes}
+                                    placeholder="e.g. Koreksi paket salah / Peralihan sistem lama"
+                                />
+                            </div>
+                        </CardContent>
+
+                        <CardFooter class="flex items-center justify-end gap-2 border-t border-stone-200 pt-4">
+                            <Button type="button" variant="outline" size="sm" onclick={() => (adjustModalOpen = false)}>
+                                Batal
+                            </Button>
+                            <Button type="submit" size="sm" disabled={adjustForm.processing}>
+                                <Save class="h-4 w-4 mr-1" />
+                                {adjustForm.processing ? 'Menyimpan...' : 'Simpan Perubahan Nominal'}
+                            </Button>
+                        </CardFooter>
+                    </form>
+                </Card>
+            </div>
+        {/if}
 
         <!-- Printable Formal Invoice Document -->
         <div class="rounded-2xl border border-stone-200 bg-white p-8 shadow-2xl backdrop-blur-xl print:border-0 print:bg-white print:text-black print:p-0">

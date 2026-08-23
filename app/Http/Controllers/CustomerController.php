@@ -239,21 +239,40 @@ class CustomerController extends Controller
         ]);
     }
 
-    public function update(Request $request, Customer $customer): RedirectResponse
-    {
+    public function update(
+        Request $request,
+        Customer $customer,
+        MikrotikService $mikrotikService
+    ): RedirectResponse {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:30',
             'address' => 'required|string',
             'notes' => 'nullable|string',
+            'package_id' => 'required|exists:packages,id',
         ]);
 
         $oldValues = $customer->toArray();
+        $packageChanged = (int) $customer->package_id !== (int) $validated['package_id'];
+
         $customer->update($validated);
+
+        if ($packageChanged) {
+            $newPackage = Package::findOrFail($validated['package_id']);
+            $ppp = $customer->pppAccount;
+            if ($ppp && $customer->status === 'active') {
+                $activePromo = $customer->activePromotion;
+                $targetProfile = ($activePromo && $activePromo->promotion?->promo_ppp_profile)
+                    ? $activePromo->promotion->promo_ppp_profile
+                    : $newPackage->ppp_profile;
+
+                $mikrotikService->updateProfile($ppp, $targetProfile);
+            }
+        }
 
         AuditService::log('update_customer', 'customers', 'Customer', $customer->id, $oldValues, $customer->toArray());
 
-        return redirect()->route('customers.show', $customer->id)->with('success', 'Data pelanggan berhasil diperbarui.');
+        return redirect()->route('customers.show', $customer->id)->with('success', 'Data pelanggan dan paket internet berhasil diperbarui.');
     }
 
     public function terminate(Request $request, Customer $customer, MikrotikService $mikrotikService): RedirectResponse

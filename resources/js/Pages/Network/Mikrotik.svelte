@@ -15,10 +15,14 @@
     import { formatDate } from '@/lib/utils';
 
     let {
-        router_status = {},
+        router_status = null,
         pending_jobs = [],
         ppp_accounts = [],
     } = $props();
+
+    const safeRouter = $derived(router_status || {});
+    const safeJobs = $derived(pending_jobs || []);
+    const safeAccounts = $derived(ppp_accounts || []);
 
     let testing = $state(false);
     let processingJobs = $state(false);
@@ -159,7 +163,7 @@
                     {testing ? 'Menguji...' : 'Tes Koneksi Router'}
                 </Button>
 
-                {#if pending_jobs.length > 0}
+                {#if safeJobs.length > 0}
                     <Button variant="default" size="sm" onclick={processQueue} disabled={processingJobs}>
                         <RefreshCw class="h-3.5 w-3.5 mr-1" />
                         {processingJobs ? 'Memproses...' : 'Proses Antrean Sinkronisasi'}
@@ -290,20 +294,20 @@
                             {liveStatus.toUpperCase()}
                         </Badge>
                     </div>
-                    <CardTitle class="text-lg mt-1">{router_status.name || 'MikroTik CCR2004'}</CardTitle>
+                    <CardTitle class="text-lg mt-1">{safeRouter.name || 'MikroTik CCR2004'}</CardTitle>
                 </CardHeader>
                 <CardContent class="space-y-2 text-xs pt-1">
                     <div class="flex justify-between py-1 border-b border-stone-200">
                         <span class="text-stone-500">Host IP:</span>
-                        <span class="font-mono text-stone-800">{router_status.host || '192.168.88.1'}</span>
+                        <span class="font-mono text-stone-800">{safeRouter.host || '192.168.88.1'}</span>
                     </div>
                     <div class="flex justify-between py-1 border-b border-stone-200">
                         <span class="text-stone-500">API Port:</span>
-                        <span class="font-mono text-stone-800">{router_status.port || 8728}</span>
+                        <span class="font-mono text-stone-800">{safeRouter.port || 8728}</span>
                     </div>
                     <div class="flex justify-between py-1">
                         <span class="text-stone-500">Versi RouterOS:</span>
-                        <span class="font-mono text-stone-800 font-semibold">{router_status.version || 'v7.24 (Stable)'}</span>
+                        <span class="font-mono text-stone-800 font-semibold">{safeRouter.version || 'v7.24 (Stable)'}</span>
                     </div>
                 </CardContent>
             </Card>
@@ -323,7 +327,7 @@
                     <div class="flex justify-between py-1 border-b border-stone-200">
                         <span class="text-stone-500">Tidak Terhubung:</span>
                         <span class="font-bold text-stone-700">
-                            {Math.max(0, ppp_accounts.length - activeConnections.length)} Offline
+                            {Math.max(0, safeAccounts.length - activeConnections.length)} Offline
                         </span>
                     </div>
                     <div class="flex justify-between py-1">
@@ -336,7 +340,7 @@
             <Card class="border-stone-200 bg-white">
                 <CardHeader class="pb-2">
                     <span class="text-xs font-semibold uppercase text-stone-500">Antrean Offline (Jobs)</span>
-                    <CardTitle class="text-lg mt-1">{pending_jobs.length} Menunggu Sync</CardTitle>
+                    <CardTitle class="text-lg mt-1">{safeJobs.length} Menunggu Sync</CardTitle>
                 </CardHeader>
                 <CardContent class="space-y-2 text-xs pt-1">
                     <p class="text-stone-500 leading-relaxed">
@@ -434,7 +438,7 @@
         </Card>
 
         <!-- Sync Queue Table -->
-        {#if pending_jobs.length > 0}
+        {#if safeJobs.length > 0}
             <Card class="border-amber-500/30 bg-white">
                 <CardHeader class="flex flex-row items-center justify-between pb-3">
                     <div class="flex items-center gap-2">
@@ -459,7 +463,7 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-stone-100">
-                                {#each pending_jobs as job}
+                                {#each safeJobs as job}
                                     <tr class="hover:bg-stone-50">
                                         <td class="py-2.5 px-4 font-mono font-semibold text-amber-800">{job.command}</td>
                                         <td class="py-2.5 px-4 font-mono text-stone-800">{job.payload?.username || job.payload?.name || '-'}</td>
@@ -493,7 +497,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-stone-100">
-                            {#each ppp_accounts as acc}
+                            {#each safeAccounts as acc}
                                 {@const activeConnection = activeConnectionFor(acc.username)}
                                 <tr class="hover:bg-stone-50">
                                     <td class="py-2.5 px-4 font-mono font-semibold text-stone-800">{acc.username}</td>

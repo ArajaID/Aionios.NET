@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\ApprovalController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingController;
+use App\Http\Controllers\Api\V1\ChartOfAccountController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DeviceController;
@@ -108,12 +109,20 @@ Route::prefix('v1')->group(function () {
         Route::put('/devices/{device}', [DeviceController::class, 'update'])->middleware(['api.permission:devices.manage', 'throttle:api-write']);
         Route::delete('/devices/{device}', [DeviceController::class, 'destroy'])->middleware(['api.permission:devices.manage', 'throttle:api-write']);
 
+        // Chart of Accounts (COA) - Finance & Owner Only
+        Route::get('/chart-of-accounts', [ChartOfAccountController::class, 'index'])->middleware('api.permission:coa.view');
+        Route::get('/chart-of-accounts/{chart_of_account}', [ChartOfAccountController::class, 'show'])->middleware('api.permission:coa.view');
+        Route::get('/coas', [ChartOfAccountController::class, 'index'])->middleware('api.permission:coa.view');
+        Route::get('/coas/{chart_of_account}', [ChartOfAccountController::class, 'show'])->middleware('api.permission:coa.view');
+
         // References
         Route::prefix('reference')->middleware('api.permission:reference.view')->group(function () {
             Route::get('/packages', [ReferenceController::class, 'packages']);
             Route::get('/cash-bank-accounts', [ReferenceController::class, 'cashBankAccounts']);
             Route::get('/revenue-accounts', [ReferenceController::class, 'revenueAccounts']);
             Route::get('/expense-accounts', [ReferenceController::class, 'expenseAccounts']);
+            Route::get('/chart-of-accounts', [ChartOfAccountController::class, 'index'])->middleware('api.permission:coa.view');
+            Route::get('/coas', [ChartOfAccountController::class, 'index'])->middleware('api.permission:coa.view');
         });
     });
 });

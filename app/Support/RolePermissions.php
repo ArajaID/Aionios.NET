@@ -11,13 +11,13 @@ final class RolePermissions
             'billing.view', 'billing.manage', 'payments.view', 'payments.create', 'payments.reversal',
             'incomes.view', 'incomes.create', 'expenses.view', 'expenses.create',
             'expenses.approve', 'approvals.view', 'approvals.manage',
-            'notifications.view', 'devices.manage', 'reference.view',
+            'notifications.view', 'devices.manage', 'reference.view', 'coa.view',
         ],
         'admin_keuangan' => [
             'dashboard.view', 'customers.view', 'customers.manage', 'billing.view', 'billing.manage',
             'payments.view', 'payments.create', 'payments.reversal',
             'incomes.view', 'incomes.create', 'expenses.view', 'expenses.create',
-            'notifications.view', 'devices.manage', 'reference.view',
+            'notifications.view', 'devices.manage', 'reference.view', 'coa.view',
         ],
         'admin_jaringan' => [
             'dashboard.view', 'customers.view', 'customers.manage',

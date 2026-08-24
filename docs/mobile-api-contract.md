@@ -496,14 +496,64 @@ Register/update:
 
 `platform`: `android` atau `ios`. Push token dienkripsi di database dan tidak pernah dikirim kembali pada response.
 
-### Reference data
+### Reference data & Chart of Accounts (COA)
 
-| Method | Path | Penggunaan |
-|---|---|---|
-| `GET` | `/reference/packages` | Form customer/activation |
-| `GET` | `/reference/cash-bank-accounts` | Payment, income, expense |
-| `GET` | `/reference/revenue-accounts` | Other income |
-| `GET` | `/reference/expense-accounts` | Expense |
+| Method | Path | Permission | Penggunaan |
+|---|---|---|---|
+| `GET` | `/reference/packages` | `reference.view` | Form customer/activation |
+| `GET` | `/reference/cash-bank-accounts` | `reference.view` | Payment, income, expense |
+| `GET` | `/reference/revenue-accounts` | `reference.view` | Other income (revenue only) |
+| `GET` | `/reference/expense-accounts` | `reference.view` | Expense (expense only) |
+| `GET` | `/chart-of-accounts` | `coa.view` | Daftar lengkap COA dengan filter context (`payment`, `income`, `expense`, `billing`) |
+| `GET` | `/chart-of-accounts/{id}` | `coa.view` | Detail satu akun COA beserta relasi Kas/Bank |
+| `GET` | `/reference/chart-of-accounts` | `coa.view` | Alias reference untuk COA |
+
+> **Catatan Otorisasi COA:** Endpoint `/chart-of-accounts` dilindungi oleh permission `coa.view` yang hanya dimiliki oleh role `owner` dan `admin_keuangan`. Role `admin_jaringan` akan menerima `403 FORBIDDEN`.
+
+#### Query Parameters `/chart-of-accounts`:
+- `usage` / `for`: Filter kontekstual transaksi:
+  - `payment` / `pembayaran`: Mengambil akun Kas/Bank, Piutang Usaha Pelanggan (`1210`), dan Beban MDR QRIS (`5170`).
+  - `income` / `pemasukan`: Mengambil akun Pendapatan (`type=revenue`) dan akun Kas/Bank penerima.
+  - `expense` / `pengeluaran`: Mengambil akun Beban (`type=expense`) dan akun Kas/Bank pembayar.
+  - `billing` / `tagihan`: Mengambil akun Piutang Usaha Pelanggan (`1210`) dan Pendapatan Langganan (`4110`).
+  - `cash_bank` / `kas_bank`: Mengambil seluruh akun kas dan bank aktif.
+- `type`: Filter tipe akun (`asset`, `liability`, `equity`, `revenue`, `expense`). Dapat berupa single atau comma-separated (contoh: `type=revenue,expense`).
+- `category`: Filter string kategori akun (contoh: `Kas & Setara Kas`, `Beban Operasional`).
+- `search` / `q`: Pencarian berdasarkan kode atau nama akun (contoh: `search=bca` atau `search=5110`).
+- `is_active`: `true` (default), `false`, atau `all`.
+- `per_page`: Mengaktifkan pagination standar jika diisi integer (contoh: `per_page=20`).
+
+#### Response Example `/chart-of-accounts`:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "code": "1110",
+      "name": "Kas Kasir Utama",
+      "type": "asset",
+      "category": "Kas & Setara Kas",
+      "normal_balance": "debit",
+      "is_active": true,
+      "is_system": true,
+      "cash_bank_accounts": [
+        {
+          "id": 1,
+          "name": "Kas Tunai Kasir",
+          "bank_name": "Internal Cash",
+          "account_number": "CASH-01",
+          "current_balance": "5000000.00",
+          "is_active": true
+        }
+      ],
+      "created_at": "2026-08-24T00:00:00.000000Z",
+      "updated_at": "2026-08-24T00:00:00.000000Z"
+    }
+  ]
+}
+```
+
 
 ## 8. Idempotency behavior
 

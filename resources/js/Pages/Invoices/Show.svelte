@@ -13,7 +13,7 @@
     import { Receipt, ArrowLeft, Printer, CreditCard, CheckCircle2, AlertCircle, Calendar, Edit3, Trash2, X, Save } from 'lucide-svelte';
     import { formatRupiah, formatDate } from '@/lib/utils';
 
-    let { invoice = {} } = $props();
+    let { invoice = {}, is_owner = false } = $props();
 
     let adjustModalOpen = $state(false);
 
@@ -69,13 +69,15 @@
                 {#if invoice.status !== 'paid'}
                     <Button variant="outline" size="sm" onclick={() => (adjustModalOpen = true)}>
                         <Edit3 class="h-3.5 w-3.5 mr-1" />
-                        Sesuaikan Nominal
+                        {is_owner ? 'Sesuaikan Nominal' : 'Ajukan Penyesuaian'}
                     </Button>
 
-                    <Button variant="destructive" size="sm" onclick={handleDeleteInvoice}>
-                        <Trash2 class="h-3.5 w-3.5 mr-1" />
-                        Hapus Tagihan
-                    </Button>
+                    {#if is_owner}
+                        <Button variant="destructive" size="sm" onclick={handleDeleteInvoice}>
+                            <Trash2 class="h-3.5 w-3.5 mr-1" />
+                            Hapus Tagihan
+                        </Button>
+                    {/if}
 
                     <Link href={`/payments/create?customer_id=${invoice.customer_id}`}>
                         <Button variant="default" size="sm">
@@ -91,6 +93,31 @@
                 </Button>
             </div>
         </div>
+
+        <!-- Pending Adjustment Banner -->
+        {#if invoice.pending_adjustment_request}
+            <div class="rounded-xl border border-amber-500/30 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
+                <div class="flex items-start gap-3">
+                    <AlertCircle class="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+                    <div>
+                        <h4 class="text-xs font-bold text-amber-900">Menunggu Persetujuan Owner (Approval Pending)</h4>
+                        <p class="text-xs text-amber-800 mt-0.5">
+                            Pengajuan penyesuaian nominal dari <strong>{formatRupiah(invoice.pending_adjustment_request.old_total_amount)}</strong> menjadi <strong>{formatRupiah(invoice.pending_adjustment_request.new_total_amount)}</strong> oleh <strong>{invoice.pending_adjustment_request.requester?.name}</strong> sedang menunggu verifikasi Owner.
+                        </p>
+                        {#if invoice.pending_adjustment_request.reason}
+                            <p class="text-[11px] text-amber-700 italic mt-1">Alasan: {invoice.pending_adjustment_request.reason}</p>
+                        {/if}
+                    </div>
+                </div>
+                {#if is_owner}
+                    <Link href="/approvals">
+                        <Button size="sm" class="shrink-0 bg-amber-600 hover:bg-amber-700 text-stone-900 text-xs">
+                            Review di Approvals
+                        </Button>
+                    </Link>
+                {/if}
+            </div>
+        {/if}
 
         <!-- Adjustment Modal -->
         {#if adjustModalOpen}
@@ -109,10 +136,12 @@
                                 <div>
                                     <CardTitle class="flex items-center gap-2">
                                         <Edit3 class="h-4 w-4 text-stone-800" />
-                                        Sesuaikan Nominal Tagihan
+                                        {is_owner ? 'Sesuaikan Nominal Tagihan' : 'Ajukan Penyesuaian Tagihan'}
                                     </CardTitle>
                                     <CardDescription class="mt-1">
-                                        Ubah subtotal atau diskon untuk tagihan {invoice.invoice_number}. Jika total menjadi Rp 0, tagihan otomatis berstatus Lunas.
+                                        {is_owner
+                                            ? `Ubah subtotal atau diskon untuk tagihan ${invoice.invoice_number}. Jika total menjadi Rp 0, tagihan otomatis berstatus Lunas.`
+                                            : `Ajukan penyesuaian nominal tagihan ${invoice.invoice_number} kepada Owner untuk disetujui.`}
                                     </CardDescription>
                                 </div>
                                 <button
@@ -167,6 +196,7 @@
                                     id="adj_notes"
                                     bind:value={adjustForm.notes}
                                     placeholder="e.g. Koreksi paket salah / Peralihan sistem lama"
+                                    required={!is_owner}
                                 />
                             </div>
                         </CardContent>
@@ -177,7 +207,11 @@
                             </Button>
                             <Button type="submit" size="sm" disabled={adjustForm.processing}>
                                 <Save class="h-4 w-4 mr-1" />
-                                {adjustForm.processing ? 'Menyimpan...' : 'Simpan Perubahan Nominal'}
+                                {adjustForm.processing
+                                    ? 'Menyimpan...'
+                                    : is_owner
+                                    ? 'Simpan Perubahan Nominal'
+                                    : 'Kirim Pengajuan ke Owner'}
                             </Button>
                         </CardFooter>
                     </form>

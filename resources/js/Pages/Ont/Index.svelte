@@ -19,6 +19,7 @@
     let {
         onts = { data: [], links: [] },
         customers = [],
+        suggested_ont_id = 'ONT-0001',
         filters = {},
     } = $props();
 
@@ -31,7 +32,7 @@
     let selectedOnt = $state(null);
 
     const createForm = useForm({
-        ont_id: 'ONT-' + String(Math.floor(1000 + Math.random() * 9000)),
+        ont_id: suggested_ont_id,
         brand: 'Huawei',
         model: 'HG8245H5',
         serial_number: '',
@@ -53,6 +54,11 @@
 
     function handleFilter() {
         router.get('/ont', { search, status }, { preserveState: true, replace: true });
+    }
+
+    function openCreate() {
+        createForm.ont_id = suggested_ont_id;
+        createModalOpen = true;
     }
 
     function handleCreate(e) {
@@ -105,7 +111,7 @@
                 <p class="text-xs text-stone-500 mt-1">Lacak posisi perangkat ONT, histori pemakaian per pelanggan, serial number, dan kondisi fisik.</p>
             </div>
 
-            <Button variant="default" size="sm" onclick={() => (createModalOpen = true)}>
+            <Button variant="default" size="sm" onclick={openCreate}>
                 <Plus class="h-4 w-4 mr-1" />
                 Registrasi ONT Baru
             </Button>

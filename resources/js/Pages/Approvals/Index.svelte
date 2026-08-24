@@ -14,29 +14,50 @@
     import TabsList from '@/Components/ui/tabs/TabsList.svelte';
     import TabsTrigger from '@/Components/ui/tabs/TabsTrigger.svelte';
     import TabsContent from '@/Components/ui/tabs/TabsContent.svelte';
-    import { CheckSquare, Check, X, TrendingDown, RotateCcw } from 'lucide-svelte';
+    import { CheckSquare, Check, X, TrendingDown, RotateCcw, FileEdit, Package as PackageIcon, ArrowRight } from 'lucide-svelte';
     import { formatRupiah, formatDate } from '@/lib/utils';
 
     let {
         pending_expenses = [],
         pending_reversals = [],
+        pending_invoice_adjustments = [],
+        pending_package_changes = [],
     } = $props();
 
     let activeTab = $state('expenses');
     let approveExpenseModalOpen = $state(false);
     let approveReversalModalOpen = $state(false);
+    let approveAdjModalOpen = $state(false);
+    let approvePkgModalOpen = $state(false);
+
     let rejectExpenseModalOpen = $state(false);
     let rejectReversalModalOpen = $state(false);
+    let rejectAdjModalOpen = $state(false);
+    let rejectPkgModalOpen = $state(false);
+
     let selectedExpense = $state(null);
     let selectedReversal = $state(null);
+    let selectedAdj = $state(null);
+    let selectedPkg = $state(null);
+
     let approvingExpense = $state(false);
     let approvingReversal = $state(false);
+    let approvingAdj = $state(false);
+    let approvingPkg = $state(false);
 
     const rejectExpenseForm = useForm({
         rejection_reason: '',
     });
 
     const rejectReversalForm = useForm({
+        rejection_reason: '',
+    });
+
+    const rejectAdjForm = useForm({
+        rejection_reason: '',
+    });
+
+    const rejectPkgForm = useForm({
         rejection_reason: '',
     });
 
@@ -99,6 +120,66 @@
             onSuccess: () => (rejectReversalModalOpen = false),
         });
     }
+
+    // Invoice Adjustment Actions
+    function openApproveAdj(adj) {
+        selectedAdj = adj;
+        approveAdjModalOpen = true;
+    }
+
+    function confirmApproveAdj() {
+        if (!selectedAdj || approvingAdj) return;
+
+        approvingAdj = true;
+        router.post(`/approvals/invoice-adjustment/${selectedAdj.id}/approve`, {}, {
+            preserveScroll: true,
+            onSuccess: () => (approveAdjModalOpen = false),
+            onFinish: () => (approvingAdj = false),
+        });
+    }
+
+    function openRejectAdj(adj) {
+        selectedAdj = adj;
+        rejectAdjForm.rejection_reason = '';
+        rejectAdjModalOpen = true;
+    }
+
+    function handleRejectAdj(e) {
+        e.preventDefault();
+        rejectAdjForm.post(`/approvals/invoice-adjustment/${selectedAdj.id}/reject`, {
+            onSuccess: () => (rejectAdjModalOpen = false),
+        });
+    }
+
+    // Package Change Actions
+    function openApprovePkg(pkg) {
+        selectedPkg = pkg;
+        approvePkgModalOpen = true;
+    }
+
+    function confirmApprovePkg() {
+        if (!selectedPkg || approvingPkg) return;
+
+        approvingPkg = true;
+        router.post(`/approvals/package-change/${selectedPkg.id}/approve`, {}, {
+            preserveScroll: true,
+            onSuccess: () => (approvePkgModalOpen = false),
+            onFinish: () => (approvingPkg = false),
+        });
+    }
+
+    function openRejectPkg(pkg) {
+        selectedPkg = pkg;
+        rejectPkgForm.rejection_reason = '';
+        rejectPkgModalOpen = true;
+    }
+
+    function handleRejectPkg(e) {
+        e.preventDefault();
+        rejectPkgForm.post(`/approvals/package-change/${selectedPkg.id}/reject`, {
+            onSuccess: () => (rejectPkgModalOpen = false),
+        });
+    }
 </script>
 
 <AuthenticatedLayout
@@ -113,7 +194,7 @@
                     Pusat Persetujuan Owner (Approval Hub)
                 </h1>
                 <p class="text-xs text-stone-500 mt-1">
-                    Kontrol otorisasi Owner atas pengeluaran beban kas/bank dan pembatalan (reversal) transaksi keuangan.
+                    Kontrol otorisasi Owner atas beban kas/bank, reversal transaksi, penyesuaian invoice, dan pergantian paket pelanggan.
                 </p>
             </div>
         </div>
@@ -122,11 +203,19 @@
             <TabsList>
                 <TabsTrigger value="expenses" activeValue={activeTab} onclick={() => (activeTab = 'expenses')}>
                     <TrendingDown class="h-4 w-4" />
-                    Pengeluaran Beban ({pending_expenses.length})
+                    Beban Kas ({pending_expenses.length})
                 </TabsTrigger>
                 <TabsTrigger value="reversals" activeValue={activeTab} onclick={() => (activeTab = 'reversals')}>
                     <RotateCcw class="h-4 w-4" />
-                    Reversal Pembayaran ({pending_reversals.length})
+                    Reversal ({pending_reversals.length})
+                </TabsTrigger>
+                <TabsTrigger value="invoice_adjustments" activeValue={activeTab} onclick={() => (activeTab = 'invoice_adjustments')}>
+                    <FileEdit class="h-4 w-4" />
+                    Penyesuaian Tagihan ({pending_invoice_adjustments.length})
+                </TabsTrigger>
+                <TabsTrigger value="package_changes" activeValue={activeTab} onclick={() => (activeTab = 'package_changes')}>
+                    <PackageIcon class="h-4 w-4" />
+                    Ganti Paket ({pending_package_changes.length})
                 </TabsTrigger>
             </TabsList>
 
@@ -245,7 +334,7 @@
                                                 </td>
                                                 <td class="py-3 px-4 text-stone-500">{formatDate(rev.payment?.payment_date)}</td>
                                                 <td class="py-3 px-4 text-stone-500">{rev.requester?.name}</td>
-                                                <td class="py-3 px-4 text-rose-300 font-medium">{rev.reason}</td>
+                                                <td class="py-3 px-4 text-rose-700 font-medium">{rev.reason}</td>
                                                 <td class="py-3 px-4 text-right font-mono font-bold text-stone-900">
                                                     {formatRupiah(rev.payment?.gross_amount)}
                                                 </td>
@@ -280,9 +369,168 @@
                     </CardContent>
                 </Card>
             </TabsContent>
+
+            <!-- TAB 3: PENDING INVOICE ADJUSTMENTS -->
+            <TabsContent value="invoice_adjustments" activeValue={activeTab}>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Pengajuan Penyesuaian Nominal Tagihan</CardTitle>
+                    </CardHeader>
+                    <CardContent class="p-0">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left">
+                                <thead class="border-b border-stone-200 text-stone-500 uppercase text-[10px] bg-stone-50">
+                                    <tr>
+                                        <th class="py-3 px-4">No. Tagihan</th>
+                                        <th class="py-3 px-4">Pelanggan</th>
+                                        <th class="py-3 px-4">Diajukan Oleh</th>
+                                        <th class="py-3 px-4">Alasan Penyesuaian</th>
+                                        <th class="py-3 px-4 text-right">Nominal Lama</th>
+                                        <th class="py-3 px-4 text-right">Nominal Baru</th>
+                                        <th class="py-3 px-4 text-right">Aksi Owner</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-stone-100">
+                                    {#if pending_invoice_adjustments.length === 0}
+                                        <tr>
+                                            <td colspan="7" class="py-8 text-center text-stone-500">
+                                                Tidak ada pengajuan penyesuaian tagihan yang menunggu persetujuan.
+                                            </td>
+                                        </tr>
+                                    {:else}
+                                        {#each pending_invoice_adjustments as adj}
+                                            <tr class="hover:bg-stone-50">
+                                                <td class="py-3 px-4 font-mono font-semibold text-stone-800">
+                                                    {adj.invoice?.invoice_number}
+                                                </td>
+                                                <td class="py-3 px-4 font-medium text-stone-800">
+                                                    {adj.invoice?.customer?.name} ({adj.invoice?.customer?.customer_id})
+                                                </td>
+                                                <td class="py-3 px-4 text-stone-500">{adj.requester?.name}</td>
+                                                <td class="py-3 px-4 text-stone-700">{adj.reason}</td>
+                                                <td class="py-3 px-4 text-right font-mono text-stone-500 line-through">
+                                                    {formatRupiah(adj.old_total_amount)}
+                                                </td>
+                                                <td class="py-3 px-4 text-right font-mono font-bold text-emerald-700">
+                                                    {formatRupiah(adj.new_total_amount)}
+                                                    {#if Number(adj.new_total_amount) === 0}
+                                                        <Badge variant="success" class="ml-1 text-[10px]">Otomatis Lunas</Badge>
+                                                    {/if}
+                                                </td>
+                                                <td class="py-3 px-4 text-right">
+                                                    <div class="flex items-center justify-end gap-1.5">
+                                                        <Button
+                                                            variant="success"
+                                                            size="sm"
+                                                            class="h-7 px-2.5 text-[11px]"
+                                                            onclick={() => openApproveAdj(adj)}
+                                                        >
+                                                            <Check class="h-3.5 w-3.5 mr-1" />
+                                                            Setujui
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            class="h-7 px-2 text-[11px]"
+                                                            onclick={() => openRejectAdj(adj)}
+                                                        >
+                                                            <X class="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {/each}
+                                    {/if}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <!-- TAB 4: PENDING PACKAGE CHANGES -->
+            <TabsContent value="package_changes" activeValue={activeTab}>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Pengajuan Perubahan Paket Pelanggan</CardTitle>
+                    </CardHeader>
+                    <CardContent class="p-0">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left">
+                                <thead class="border-b border-stone-200 text-stone-500 uppercase text-[10px] bg-stone-50">
+                                    <tr>
+                                        <th class="py-3 px-4">Pelanggan</th>
+                                        <th class="py-3 px-4">Diajukan Oleh</th>
+                                        <th class="py-3 px-4">Paket Saat Ini</th>
+                                        <th class="py-3 px-4"></th>
+                                        <th class="py-3 px-4">Paket Baru</th>
+                                        <th class="py-3 px-4">Alasan</th>
+                                        <th class="py-3 px-4 text-right">Aksi Owner</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-stone-100">
+                                    {#if pending_package_changes.length === 0}
+                                        <tr>
+                                            <td colspan="7" class="py-8 text-center text-stone-500">
+                                                Tidak ada pengajuan perubahan paket yang menunggu persetujuan.
+                                            </td>
+                                        </tr>
+                                    {:else}
+                                        {#each pending_package_changes as pkg}
+                                            <tr class="hover:bg-stone-50">
+                                                <td class="py-3 px-4 font-medium text-stone-800">
+                                                    {pkg.customer?.name}
+                                                    <span class="block font-mono text-[11px] text-stone-500">{pkg.customer?.customer_id}</span>
+                                                </td>
+                                                <td class="py-3 px-4 text-stone-500">{pkg.requester?.name}</td>
+                                                <td class="py-3 px-4">
+                                                    <span class="font-semibold text-stone-800">{pkg.old_package?.name}</span>
+                                                    <span class="block text-[11px] text-stone-500">{formatRupiah(pkg.old_package?.price)}/bln</span>
+                                                </td>
+                                                <td class="py-3 px-2 text-stone-400">
+                                                    <ArrowRight class="h-4 w-4" />
+                                                </td>
+                                                <td class="py-3 px-4">
+                                                    <span class="font-bold text-indigo-700">{pkg.new_package?.name}</span>
+                                                    <span class="block text-[11px] text-stone-500">{formatRupiah(pkg.new_package?.price)}/bln ({pkg.new_package?.download_speed_mbps} Mbps)</span>
+                                                </td>
+                                                <td class="py-3 px-4 text-stone-700">{pkg.reason}</td>
+                                                <td class="py-3 px-4 text-right">
+                                                    <div class="flex items-center justify-end gap-1.5">
+                                                        <Button
+                                                            variant="success"
+                                                            size="sm"
+                                                            class="h-7 px-2.5 text-[11px]"
+                                                            onclick={() => openApprovePkg(pkg)}
+                                                        >
+                                                            <Check class="h-3.5 w-3.5 mr-1" />
+                                                            Setujui & Sync MT
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            class="h-7 px-2 text-[11px]"
+                                                            onclick={() => openRejectPkg(pkg)}
+                                                        >
+                                                            <X class="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {/each}
+                                    {/if}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
         </Tabs>
     </div>
 
+    <!-- CONFIRM APPROVE EXPENSE -->
     <ConfirmationDialog
         bind:open={approveExpenseModalOpen}
         title={`Setujui Pengeluaran ${selectedExpense?.expense_number ?? ''}`}
@@ -297,6 +545,7 @@
         <strong>{selectedExpense?.cash_bank_account?.name ?? 'kas/bank'}</strong> akan dikurangi.
     </ConfirmationDialog>
 
+    <!-- CONFIRM APPROVE REVERSAL -->
     <ConfirmationDialog
         bind:open={approveReversalModalOpen}
         title={`Setujui Reversal ${selectedReversal?.payment?.payment_number ?? ''}`}
@@ -309,6 +558,37 @@
         <strong>{formatRupiah(selectedReversal?.payment?.gross_amount ?? 0)}</strong> akan dibalik.
         Jurnal pembalik akan diposting dan invoice pelanggan kembali berstatus
         <strong>Belum Lunas</strong>.
+    </ConfirmationDialog>
+
+    <!-- CONFIRM APPROVE INVOICE ADJUSTMENT -->
+    <ConfirmationDialog
+        bind:open={approveAdjModalOpen}
+        title={`Setujui Penyesuaian Tagihan ${selectedAdj?.invoice?.invoice_number ?? ''}`}
+        confirmLabel="Ya, Setujui Penyesuaian"
+        variant="success"
+        processing={approvingAdj}
+        onconfirm={confirmApproveAdj}
+    >
+        Nominal tagihan <strong>{selectedAdj?.invoice?.invoice_number}</strong> akan diubah dari
+        <span class="line-through">{formatRupiah(selectedAdj?.old_total_amount ?? 0)}</span> menjadi
+        <strong>{formatRupiah(selectedAdj?.new_total_amount ?? 0)}</strong>.
+        {#if Number(selectedAdj?.new_total_amount ?? 0) === 0}
+            <br />Status tagihan akan otomatis menjadi <strong>LUNAS (PAID)</strong>.
+        {/if}
+    </ConfirmationDialog>
+
+    <!-- CONFIRM APPROVE PACKAGE CHANGE -->
+    <ConfirmationDialog
+        bind:open={approvePkgModalOpen}
+        title={`Setujui Perubahan Paket ${selectedPkg?.customer?.name ?? ''}`}
+        confirmLabel="Ya, Setujui & Sync MikroTik"
+        variant="success"
+        processing={approvingPkg}
+        onconfirm={confirmApprovePkg}
+    >
+        Paket pelanggan <strong>{selectedPkg?.customer?.name}</strong> akan diubah menjadi
+        <strong>{selectedPkg?.new_package?.name}</strong>.
+        Sistem akan langsung memperbarui profil PPP di router <strong>MikroTik secara real-time</strong>.
     </ConfirmationDialog>
 
     <!-- REJECT EXPENSE MODAL -->
@@ -340,6 +620,40 @@
                 <Button type="button" variant="outline" onclick={() => (rejectReversalModalOpen = false)}>Batal</Button>
                 <Button type="submit" variant="destructive" disabled={rejectReversalForm.processing}>
                     {rejectReversalForm.processing ? 'Menolak...' : 'Konfirmasi Tolak'}
+                </Button>
+            </div>
+        </form>
+    </Dialog>
+
+    <!-- REJECT INVOICE ADJUSTMENT MODAL -->
+    <Dialog bind:open={rejectAdjModalOpen} title="Tolak Penyesuaian Tagihan">
+        <form onsubmit={handleRejectAdj} class="space-y-4">
+            <div class="space-y-1.5">
+                <label for="rej_adj_reason" class="text-xs font-semibold text-stone-700">Alasan Penolakan (Wajib)</label>
+                <Input id="rej_adj_reason" bind:value={rejectAdjForm.rejection_reason} placeholder="Alasan penolakan..." required />
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onclick={() => (rejectAdjModalOpen = false)}>Batal</Button>
+                <Button type="submit" variant="destructive" disabled={rejectAdjForm.processing}>
+                    {rejectAdjForm.processing ? 'Menolak...' : 'Konfirmasi Tolak'}
+                </Button>
+            </div>
+        </form>
+    </Dialog>
+
+    <!-- REJECT PACKAGE CHANGE MODAL -->
+    <Dialog bind:open={rejectPkgModalOpen} title="Tolak Perubahan Paket">
+        <form onsubmit={handleRejectPkg} class="space-y-4">
+            <div class="space-y-1.5">
+                <label for="rej_pkg_reason" class="text-xs font-semibold text-stone-700">Alasan Penolakan (Wajib)</label>
+                <Input id="rej_pkg_reason" bind:value={rejectPkgForm.rejection_reason} placeholder="Alasan penolakan..." required />
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onclick={() => (rejectPkgModalOpen = false)}>Batal</Button>
+                <Button type="submit" variant="destructive" disabled={rejectPkgForm.processing}>
+                    {rejectPkgForm.processing ? 'Menolak...' : 'Konfirmasi Tolak'}
                 </Button>
             </div>
         </form>

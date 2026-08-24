@@ -157,12 +157,13 @@ Jika request menerima `401`, mobile harus menghapus token lokal dan kembali ke l
 | Modul | Owner | Keuangan | Jaringan |
 |---|:---:|:---:|:---:|
 | Dashboard/customer read | ✓ | ✓ | ✓ |
-| Customer lifecycle | ✓ | — | ✓ |
+| Customer lifecycle | ✓ | ✓ | ✓ |
 | ONT/network | ✓ | — | ✓ |
 | Billing/payment | ✓ | ✓ | — |
 | Income | ✓ | ✓ | — |
 | Expense create/submit | ✓ | ✓ | — |
 | Expense approve/reject | ✓ | — | — |
+| Owner Approval Hub (All) | ✓ | — | — |
 | Notification/device/reference | ✓ | ✓ | ✓ |
 
 Gunakan `data.permissions` dari `/me` untuk UX. Backend tetap menjadi authority untuk authorization.
@@ -184,11 +185,24 @@ Gunakan `data.permissions` dari `/me` untuk UX. Backend tetap menjadi authority 
 | `GET` | `/customers/{customer}` | `customers.view` | — |
 | `POST` | `/customers` | `customers.manage` | — |
 | `PUT` | `/customers/{customer}` | `customers.manage` | — |
+| `POST` | `/customers/{customer}/change-package` | `customers.manage` | — |
 | `POST` | `/customers/{customer}/activate` | `customers.manage` | Ya |
 | `POST` | `/customers/{customer}/terminate` | `customers.manage` | Ya |
 | `POST` | `/customers/{customer}/reactivate` | `customers.manage` | Ya |
 
 List menerima `page`, `per_page` (maksimum 100), `search`, `status`, `package_id`, dan `sort`. Nilai sort yang didukung: `created_at`, `customer_id`, `name`, `status`; awali dengan `-` untuk descending.
+
+Change Package:
+
+```json
+{
+  "package_id": 4,
+  "reason": "Permintaan upgrade bandwidth pelanggan"
+}
+```
+
+*Jika dipanggil oleh Owner:* langsung mengubah paket dan sinkronisasi MikroTik (`200 OK`).
+*Jika dipanggil oleh Staf:* membuat pengajuan approval Owner (`202 Accepted` dengan status `approval_pending`).
 
 Create customer:
 
@@ -245,10 +259,29 @@ Reaktivasi ditolak dengan `CUSTOMER_HAS_OUTSTANDING` jika saldo outstanding belu
 | Method | Path | Permission | Idempotency |
 |---|---|---|:---:|
 | `GET` | `/onts` | `onts.view` | — |
+| `GET` | `/onts/suggested-id` | `onts.view` | — |
+| `POST` | `/onts` | `onts.manage` | — |
 | `GET` | `/onts/{ont}` | `onts.view` | — |
 | `GET` | `/onts/{ont}/history` | `onts.view` | — |
 | `POST` | `/customers/{customer}/ont/assign` | `onts.manage` | Ya |
 | `POST` | `/customers/{customer}/ont/return` | `onts.manage` | Ya |
+
+Suggested ONT ID (`GET /onts/suggested-id`):
+Mengembalikan nomor urut ONT stabil berikutnya (contoh: `{"data": {"suggested_ont_id": "ONT-0005"}}`).
+
+Create ONT (`POST /onts`):
+
+```json
+{
+  "ont_id": "ONT-0005",
+  "brand": "Huawei",
+  "model": "HG8245H5",
+  "serial_number": "48575443B1234567",
+  "mac_address": "AA:BB:CC:DD:EE:01",
+  "condition": "good",
+  "notes": "ONT unit baru"
+}
+```
 
 Assign:
 
@@ -283,13 +316,50 @@ Return:
 
 Write network mengembalikan `202`. Mobile menampilkan status job dan melakukan polling `GET /network/jobs/{job}` sampai `success` atau `failed`.
 
-### Billing
+### Billing & Invoice Adjustment
 
 | Method | Path | Permission |
 |---|---|---|
 | `GET` | `/customers/{customer}/invoices` | `billing.view` |
 | `GET` | `/customers/{customer}/outstanding` | `billing.view` |
 | `GET` | `/invoices/{invoice}` | `billing.view` |
+| `POST` | `/invoices/{invoice}/adjust` | `billing.manage` |
+
+Adjust Invoice:
+
+```json
+{
+  "subtotal": 0,
+  "discount_amount": 0,
+  "notes": "Peralihan pelanggan / diskon khusus"
+}
+```
+
+*Jika Owner:* Langsung memperbarui nominal (otomatis `PAID` jika Rp 0) -> `200 OK`.
+*Jika Staf:* Membuat pengajuan approval ke Owner -> `202 Accepted` (`approval_pending`).
+
+### Owner Approval Hub
+
+| Method | Path | Permission |
+|---|---|---|
+| `GET` | `/approvals/summary` | `approvals.view` |
+| `GET` | `/approvals/invoice-adjustments` | `approvals.view` |
+| `POST` | `/approvals/invoice-adjustments/{adjRequest}/approve` | `approvals.manage` |
+| `POST` | `/approvals/invoice-adjustments/{adjRequest}/reject` | `approvals.manage` |
+| `GET` | `/approvals/package-changes` | `approvals.view` |
+| `POST` | `/approvals/package-changes/{pkgRequest}/approve` | `approvals.manage` |
+| `POST` | `/approvals/package-changes/{pkgRequest}/reject` | `approvals.manage` |
+| `GET` | `/approvals/reversals` | `approvals.view` |
+| `POST` | `/approvals/reversals/{revRequest}/approve` | `approvals.manage` |
+| `POST` | `/approvals/reversals/{revRequest}/reject` | `approvals.manage` |
+
+Reject payload:
+
+```json
+{
+  "rejection_reason": "Alasan penolakan pengajuan oleh Owner"
+}
+```
 
 ### Payment
 

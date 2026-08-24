@@ -216,6 +216,10 @@ class CustomerController extends Controller
             'payments' => fn($q) => $q->with('cashBankAccount')->latest(),
             'promotions.promotion',
             'statusHistories.changer',
+            'pendingPackageChangeRequest.newPackage',
+            'pendingPackageChangeRequest.oldPackage',
+            'pendingPackageChangeRequest.requester',
+            'packageChangeRequests' => fn($q) => $q->with(['oldPackage', 'newPackage', 'requester', 'approver'])->latest(),
         ]);
 
         $availableOnts = Ont::where('status', 'available')->get();
@@ -227,6 +231,7 @@ class CustomerController extends Controller
             'available_onts' => $availableOnts,
             'packages' => $packages,
             'promotions' => $promotions,
+            'is_owner' => Auth::user()?->isOwner() ?? false,
         ]);
     }
 
@@ -234,8 +239,9 @@ class CustomerController extends Controller
     {
         $packages = Package::where('is_active', true)->get();
         return Inertia::render('Customers/Edit', [
-            'customer' => $customer->load(['package', 'ont', 'pppAccount']),
+            'customer' => $customer->load(['package', 'ont', 'pppAccount', 'pendingPackageChangeRequest.newPackage']),
             'packages' => $packages,
+            'is_owner' => Auth::user()?->isOwner() ?? false,
         ]);
     }
 
@@ -249,30 +255,81 @@ class CustomerController extends Controller
             'phone' => 'required|string|max:30',
             'address' => 'required|string',
             'notes' => 'nullable|string',
-            'package_id' => 'required|exists:packages,id',
+            'package_id' => 'nullable|exists:packages,id',
+            'package_change_reason' => 'nullable|string|max:500',
         ]);
 
+        $user = Auth::user();
         $oldValues = $customer->toArray();
-        $packageChanged = (int) $customer->package_id !== (int) $validated['package_id'];
+        $packageChanged = !empty($validated['package_id']) && (int) $customer->package_id !== (int) $validated['package_id'];
 
-        $customer->update($validated);
+        // Always update general profile data
+        $customer->update([
+            'name' => $validated['name'],
+            'phone' => $validated['phone'],
+            'address' => $validated['address'],
+            'notes' => $validated['notes'] ?? null,
+        ]);
 
         if ($packageChanged) {
             $newPackage = Package::findOrFail($validated['package_id']);
-            $ppp = $customer->pppAccount;
-            if ($ppp && $customer->status === 'active') {
-                $activePromo = $customer->activePromotion;
-                $targetProfile = ($activePromo && $activePromo->promotion?->promo_ppp_profile)
-                    ? $activePromo->promotion->promo_ppp_profile
-                    : $newPackage->ppp_profile;
 
-                $mikrotikService->updateProfile($ppp, $targetProfile);
+            if ($user && $user->isOwner()) {
+                // Owner updates package directly
+                $oldPkgId = $customer->package_id;
+                $customer->update(['package_id' => $newPackage->id]);
+
+                $ppp = $customer->pppAccount;
+                if ($ppp && $customer->status === 'active') {
+                    $activePromo = $customer->activePromotion;
+                    $targetProfile = ($activePromo && $activePromo->promotion?->promo_ppp_profile)
+                        ? $activePromo->promotion->promo_ppp_profile
+                        : $newPackage->ppp_profile;
+
+                    $mikrotikService->updateProfile($ppp, $targetProfile);
+                }
+
+                \App\Models\PackageChangeRequest::create([
+                    'customer_id' => $customer->id,
+                    'requested_by' => $user->id,
+                    'old_package_id' => $oldPkgId,
+                    'new_package_id' => $newPackage->id,
+                    'reason' => $validated['package_change_reason'] ?? 'Perubahan paket langsung oleh Owner',
+                    'status' => 'approved',
+                    'approved_by' => $user->id,
+                    'approved_at' => now(),
+                ]);
+
+                AuditService::log('update_customer_package', 'customers', 'Customer', $customer->id, $oldValues, $customer->toArray());
+
+                return redirect()->route('customers.show', $customer->id)->with('success', "Data pelanggan dan paket internet berhasil diperbarui ke {$newPackage->name}.");
             }
+
+            // Staff: Create Pending Approval Request
+            if ($customer->pendingPackageChangeRequest()->exists()) {
+                return redirect()->route('customers.show', $customer->id)->with('warning', "Data profil diperbarui, namun pengajuan ganti paket sebelumnya masih menunggu persetujuan Owner.");
+            }
+
+            \App\Models\PackageChangeRequest::create([
+                'customer_id' => $customer->id,
+                'requested_by' => $user->id,
+                'old_package_id' => $customer->package_id,
+                'new_package_id' => $newPackage->id,
+                'reason' => $validated['package_change_reason'] ?? 'Pengajuan perubahan paket oleh staf',
+                'status' => 'pending',
+            ]);
+
+            AuditService::log('request_package_change', 'customers', 'Customer', $customer->id, null, [
+                'old_package_id' => $customer->package_id,
+                'new_package_id' => $newPackage->id,
+            ]);
+
+            return redirect()->route('customers.show', $customer->id)->with('info', "Data profil diperbarui. Pengajuan perubahan paket ke {$newPackage->name} telah dikirim ke Owner untuk persetujuan di menu Approvals.");
         }
 
         AuditService::log('update_customer', 'customers', 'Customer', $customer->id, $oldValues, $customer->toArray());
 
-        return redirect()->route('customers.show', $customer->id)->with('success', 'Data pelanggan dan paket internet berhasil diperbarui.');
+        return redirect()->route('customers.show', $customer->id)->with('success', 'Data pelanggan berhasil diperbarui.');
     }
 
     public function terminate(Request $request, Customer $customer, MikrotikService $mikrotikService): RedirectResponse

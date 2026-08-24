@@ -8,12 +8,13 @@ final class RolePermissions
         'owner' => [
             'dashboard.view', 'customers.view', 'customers.manage',
             'onts.view', 'onts.manage', 'network.view', 'network.manage', 'network.retry',
-            'billing.view', 'payments.view', 'payments.create', 'payments.reversal',
+            'billing.view', 'billing.manage', 'payments.view', 'payments.create', 'payments.reversal',
             'incomes.view', 'incomes.create', 'expenses.view', 'expenses.create',
-            'expenses.approve', 'notifications.view', 'devices.manage', 'reference.view',
+            'expenses.approve', 'approvals.view', 'approvals.manage',
+            'notifications.view', 'devices.manage', 'reference.view',
         ],
         'admin_keuangan' => [
-            'dashboard.view', 'customers.view', 'billing.view',
+            'dashboard.view', 'customers.view', 'customers.manage', 'billing.view', 'billing.manage',
             'payments.view', 'payments.create', 'payments.reversal',
             'incomes.view', 'incomes.create', 'expenses.view', 'expenses.create',
             'notifications.view', 'devices.manage', 'reference.view',

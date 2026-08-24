@@ -16,6 +16,7 @@ use App\Models\Invoice;
 use App\Models\Ont;
 use App\Models\OntHistory;
 use App\Models\Package;
+use App\Models\PackageChangeRequest;
 use App\Models\PppAccount;
 use App\Services\AuditService;
 use App\Services\BillingService;
@@ -323,6 +324,59 @@ class CustomerController extends Controller
             'customer' => (new CustomerResource($result['customer']->load(['package', 'ont', 'pppAccount'])))->resolve(),
             'network' => (new NetworkJobResource($result['job']))->resolve(),
         ], 'Customer reactivated; network synchronization queued.', 202);
+    }
+
+    public function changePackage(
+        Request $request,
+        Customer $customer,
+        NetworkQueueService $networkQueue
+    ): JsonResponse {
+        $validated = $request->validate([
+            'package_id' => 'required|exists:packages,id',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $user = $request->user();
+        $newPackage = Package::findOrFail($validated['package_id']);
+
+        if ((int) $customer->package_id === (int) $newPackage->id) {
+            return ApiResponse::error('Pelanggan sudah menggunakan paket ini.', 'SAME_PACKAGE', 422);
+        }
+
+        if ($user && $user->isOwner()) {
+            $oldValues = $customer->toArray();
+            $customer->update(['package_id' => $newPackage->id]);
+
+            $job = null;
+            if ($customer->pppAccount && $customer->status === 'active') {
+                $job = $networkQueue->enqueue($customer, 'sync', ['reason' => 'Package changed via mobile API']);
+            }
+
+            AuditService::log('change_customer_package', 'customers', 'Customer', $customer->id, $oldValues, $customer->fresh()->toArray());
+
+            return ApiResponse::success([
+                'customer' => (new CustomerResource($customer->fresh()->load(['package', 'ont', 'pppAccount'])))->resolve(),
+                'network' => $job ? (new NetworkJobResource($job))->resolve() : null,
+                'status' => 'applied_directly',
+            ], "Paket pelanggan berhasil diubah ke {$newPackage->name} dan disinkronkan.");
+        }
+
+        // Staff: create approval request
+        $pkgRequest = PackageChangeRequest::create([
+            'customer_id' => $customer->id,
+            'requested_by' => $user->id,
+            'old_package_id' => $customer->package_id,
+            'new_package_id' => $newPackage->id,
+            'reason' => $validated['reason'] ?? 'Pengajuan ganti paket via mobile API',
+            'status' => 'pending',
+        ]);
+
+        AuditService::log('request_package_change', 'customers', 'PackageChangeRequest', $pkgRequest->id, null, $pkgRequest->toArray());
+
+        return ApiResponse::success([
+            'change_request' => $pkgRequest->fresh()->load(['oldPackage', 'newPackage']),
+            'status' => 'approval_pending',
+        ], 'Pengajuan perubahan paket berhasil dikirim ke Owner untuk disetujui.', 202);
     }
 
     private function sort(string $sort): array

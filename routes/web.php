@@ -91,6 +91,8 @@ Route::middleware('auth')->group(function () {
     // Accounting & COA
     Route::get('/accounting/coa', [CoaController::class, 'index'])->name('accounting.coa');
     Route::post('/accounting/coa', [CoaController::class, 'store'])->name('accounting.coa.store');
+    Route::put('/accounting/coa/{coa}', [CoaController::class, 'update'])->name('accounting.coa.update');
+    Route::post('/accounting/coa/{coa}/toggle', [CoaController::class, 'toggleActive'])->name('accounting.coa.toggle');
     Route::get('/accounting/opening-balance', [CoaController::class, 'openingBalance'])->name('accounting.opening-balance');
     Route::post('/accounting/opening-balance', [CoaController::class, 'postOpeningBalance'])->name('accounting.opening-balance.store');
     Route::get('/accounting/journals', [JournalController::class, 'index'])->name('accounting.journals');
@@ -122,6 +124,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/expenses/{expense}/reject', [ExpenseController::class, 'reject'])->name('expenses.reject');
         Route::post('/approvals/reversal/{reversalRequest}/approve', [ApprovalController::class, 'approveReversal'])->name('approvals.reversal.approve');
         Route::post('/approvals/reversal/{reversalRequest}/reject', [ApprovalController::class, 'rejectReversal'])->name('approvals.reversal.reject');
+        Route::post('/approvals/invoice-adjustment/{invoiceAdjustmentRequest}/approve', [ApprovalController::class, 'approveInvoiceAdjustment'])->name('approvals.invoice-adjustment.approve');
+        Route::post('/approvals/invoice-adjustment/{invoiceAdjustmentRequest}/reject', [ApprovalController::class, 'rejectInvoiceAdjustment'])->name('approvals.invoice-adjustment.reject');
+        Route::post('/approvals/package-change/{packageChangeRequest}/approve', [ApprovalController::class, 'approvePackageChange'])->name('approvals.package-change.approve');
+        Route::post('/approvals/package-change/{packageChangeRequest}/reject', [ApprovalController::class, 'rejectPackageChange'])->name('approvals.package-change.reject');
 
         Route::post('/accounting/periods', [AccountingPeriodController::class, 'store'])->name('accounting.periods.store');
         Route::post('/accounting/periods/close', [AccountingPeriodController::class, 'close'])->name('accounting.periods.close');

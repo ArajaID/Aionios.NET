@@ -148,4 +148,44 @@ class OntController extends Controller
 
         return ApiResponse::success((new OntResource($ont->load('currentCustomer')))->resolve(), 'ONT returned successfully.');
     }
+
+    public function suggestedId(): JsonResponse
+    {
+        $existingOntIds = Ont::pluck('ont_id')->toArray();
+        $maxNum = 0;
+        foreach ($existingOntIds as $oid) {
+            if (preg_match('/^ONT-(\d+)$/', $oid, $matches)) {
+                $num = (int) $matches[1];
+                if ($num > $maxNum) {
+                    $maxNum = $num;
+                }
+            }
+        }
+        $nextNum = $maxNum + 1;
+        $suggestedId = 'ONT-' . str_pad((string) $nextNum, 4, '0', STR_PAD_LEFT);
+
+        return ApiResponse::success(['suggested_ont_id' => $suggestedId]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ont_id' => 'required|string|max:50|unique:onts,ont_id',
+            'brand' => 'required|string|max:100',
+            'model' => 'required|string|max:100',
+            'serial_number' => 'nullable|string|max:100|unique:onts,serial_number',
+            'mac_address' => 'nullable|string|max:50',
+            'condition' => 'required|in:good,damaged,refurbished',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $ont = Ont::create([
+            ...$validated,
+            'status' => 'available',
+        ]);
+
+        AuditService::log('create_ont', 'onts', 'Ont', $ont->id, null, $ont->toArray());
+
+        return ApiResponse::success((new OntResource($ont))->resolve(), 'ONT baru berhasil diregistrasi.', 201);
+    }
 }

@@ -36,9 +36,17 @@ class OntController extends Controller
         $onts = $query->latest()->paginate(12)->withQueryString();
         $customers = Customer::where('status', 'active')->whereNull('ont_id')->get();
 
+        $lastOnt = Ont::latest('id')->first();
+        $nextId = $lastOnt ? ((int) preg_replace('/\D/', '', $lastOnt->ont_id) + 1) : 1;
+        if ($nextId <= 0) {
+            $nextId = Ont::count() + 1;
+        }
+        $suggestedOntId = 'ONT-' . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT);
+
         return Inertia::render('Ont/Index', [
             'onts' => $onts,
             'customers' => $customers,
+            'suggested_ont_id' => $suggestedOntId,
             'filters' => $request->only(['search', 'status']),
         ]);
     }

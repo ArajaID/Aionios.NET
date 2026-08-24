@@ -39,6 +39,7 @@
         available_onts = [],
         packages = [],
         promotions = [],
+        is_owner = false,
     } = $props();
 
     let activeTab = $state('overview');
@@ -84,6 +85,31 @@
     ]}
 >
     <div class="space-y-6">
+        <!-- Pending Package Change Banner -->
+        {#if customer.pending_package_change_request}
+            <div class="rounded-xl border border-amber-500/30 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-start gap-3">
+                    <div class="h-2.5 w-2.5 rounded-full bg-amber-500 mt-1 shrink-0"></div>
+                    <div>
+                        <h4 class="text-xs font-bold text-amber-900">Pengajuan Perubahan Paket Menunggu Persetujuan Owner</h4>
+                        <p class="text-xs text-amber-800 mt-0.5">
+                            Permohonan ganti paket ke <strong>{customer.pending_package_change_request.new_package?.name}</strong> oleh <strong>{customer.pending_package_change_request.requester?.name}</strong> sedang menunggu verifikasi Owner.
+                        </p>
+                        {#if customer.pending_package_change_request.reason}
+                            <p class="text-[11px] text-amber-700 italic mt-1">Alasan: {customer.pending_package_change_request.reason}</p>
+                        {/if}
+                    </div>
+                </div>
+                {#if is_owner}
+                    <Link href="/approvals">
+                        <Button size="sm" class="shrink-0 bg-amber-600 hover:bg-amber-700 text-stone-900 text-xs">
+                            Review di Approvals
+                        </Button>
+                    </Link>
+                {/if}
+            </div>
+        {/if}
+
         <!-- Top Profile Banner Card -->
         <div class="rounded-2xl border border-stone-200 bg-white p-6 backdrop-blur-xl">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">

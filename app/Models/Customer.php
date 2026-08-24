@@ -83,6 +83,16 @@ class Customer extends Model
         return $this->hasMany(CustomerStatusHistory::class)->latest();
     }
 
+    public function packageChangeRequests(): HasMany
+    {
+        return $this->hasMany(PackageChangeRequest::class);
+    }
+
+    public function pendingPackageChangeRequest()
+    {
+        return $this->hasOne(PackageChangeRequest::class)->where('status', 'pending');
+    }
+
     public function getOutstandingAmountAttribute(): float
     {
         return (float) $this->unpaidInvoices()->sum('total_amount');

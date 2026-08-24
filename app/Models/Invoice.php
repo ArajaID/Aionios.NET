@@ -46,4 +46,14 @@ class Invoice extends Model
     {
         return $this->hasMany(PaymentAllocation::class);
     }
+
+    public function adjustmentRequests(): HasMany
+    {
+        return $this->hasMany(InvoiceAdjustmentRequest::class);
+    }
+
+    public function pendingAdjustmentRequest()
+    {
+        return $this->hasOne(InvoiceAdjustmentRequest::class)->where('status', 'pending');
+    }
 }

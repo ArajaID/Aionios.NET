@@ -1,5 +1,5 @@
 <script>
-    import { useForm, Link } from '@inertiajs/svelte';
+    import { useForm, router, Link } from '@inertiajs/svelte';
     import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.svelte';
     import Button from '@/Components/ui/button/Button.svelte';
     import Input from '@/Components/ui/input/Input.svelte';
@@ -10,17 +10,27 @@
     import CardContent from '@/Components/ui/card/CardContent.svelte';
     import Badge from '@/Components/ui/badge/Badge.svelte';
     import Dialog from '@/Components/ui/dialog/Dialog.svelte';
-    import { BookOpen, Plus, FileSpreadsheet, Lock } from 'lucide-svelte';
+    import { BookOpen, Plus, FileSpreadsheet, Lock, Edit3, Power, CheckCircle2, XCircle } from 'lucide-svelte';
 
     let { coas = [] } = $props();
 
     let createModalOpen = $state(false);
+    let editModalOpen = $state(false);
+    let selectedCoa = $state(null);
 
     const form = useForm({
         code: '',
         name: '',
         type: 'asset',
         category: 'Kas & Setara Kas',
+        normal_balance: 'debit',
+    });
+
+    const editForm = useForm({
+        code: '',
+        name: '',
+        type: 'asset',
+        category: '',
         normal_balance: 'debit',
     });
 
@@ -40,6 +50,35 @@
                 form.reset();
             },
         });
+    }
+
+    function openEdit(coa) {
+        selectedCoa = coa;
+        editForm.code = coa.code;
+        editForm.name = coa.name;
+        editForm.type = coa.type;
+        editForm.category = coa.category;
+        editForm.normal_balance = coa.normal_balance;
+        editModalOpen = true;
+    }
+
+    function handleEdit(e) {
+        e.preventDefault();
+        if (!selectedCoa) return;
+
+        editForm.put(`/accounting/coa/${selectedCoa.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                editModalOpen = false;
+            },
+        });
+    }
+
+    function toggleStatus(coa) {
+        const actionText = coa.is_active ? 'menonaktifkan' : 'mengaktifkan';
+        if (confirm(`Apakah Anda yakin ingin ${actionText} akun COA ${coa.code} - ${coa.name}?`)) {
+            router.post(`/accounting/coa/${coa.id}/toggle`, {}, { preserveScroll: true });
+        }
     }
 </script>
 
@@ -61,7 +100,7 @@
                 <Link href="/accounting/opening-balance">
                     <Button variant="outline" size="sm">
                         <FileSpreadsheet class="h-4 w-4 mr-1 text-emerald-700" />
-                        Posting Saldo Awal (Opening Balance)
+                        Posting Saldo Awal
                     </Button>
                 </Link>
 
@@ -88,24 +127,41 @@
                         <table class="w-full text-xs text-left">
                             <thead class="border-b border-stone-200 text-stone-500 uppercase text-[10px] bg-stone-50">
                                 <tr>
-                                    <th class="py-2.5 px-4">Kode Akun</th>
+                                    <th class="py-2.5 px-4">Kode</th>
                                     <th class="py-2.5 px-4">Nama Akun</th>
                                     <th class="py-2.5 px-4">Kategori Sub-Kelompok</th>
-                                    <th class="py-2.5 px-4 text-center">Status Sistem</th>
+                                    <th class="py-2.5 px-4 text-center">Status</th>
+                                    <th class="py-2.5 px-4 text-right">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-stone-100">
                                 {#each groups.asset as coa}
-                                    <tr class="hover:bg-stone-50">
+                                    <tr class="hover:bg-stone-50 {coa.is_active ? '' : 'opacity-60 bg-stone-50/50'}">
                                         <td class="py-2.5 px-4 font-mono font-bold text-stone-800">{coa.code}</td>
                                         <td class="py-2.5 px-4 font-semibold text-stone-900">{coa.name}</td>
                                         <td class="py-2.5 px-4 text-stone-500">{coa.category}</td>
                                         <td class="py-2.5 px-4 text-center">
-                                            {#if coa.is_system}
-                                                <Badge variant="outline" class="text-[10px] py-0">SISTEM ISP</Badge>
+                                            {#if coa.is_active}
+                                                <Badge variant="success" class="text-[10px] py-0">Aktif</Badge>
                                             {:else}
-                                                <span class="text-stone-500 text-[11px]">Kustom</span>
+                                                <Badge variant="secondary" class="text-[10px] py-0 text-stone-500">Nonaktif</Badge>
                                             {/if}
+                                        </td>
+                                        <td class="py-2.5 px-4 text-right">
+                                            <div class="flex items-center justify-end gap-1.5">
+                                                <Button variant="ghost" size="sm" class="h-7 w-7 p-0" onclick={() => openEdit(coa)} title="Edit Akun">
+                                                    <Edit3 class="h-3.5 w-3.5 text-stone-600" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    class="h-7 w-7 p-0 {coa.is_active ? 'text-amber-600 hover:text-amber-700' : 'text-emerald-600 hover:text-emerald-700'}"
+                                                    onclick={() => toggleStatus(coa)}
+                                                    title={coa.is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+                                                >
+                                                    <Power class="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 {/each}
@@ -129,24 +185,41 @@
                         <table class="w-full text-xs text-left">
                             <thead class="border-b border-stone-200 text-stone-500 uppercase text-[10px] bg-stone-50">
                                 <tr>
-                                    <th class="py-2.5 px-4">Kode Akun</th>
+                                    <th class="py-2.5 px-4">Kode</th>
                                     <th class="py-2.5 px-4">Nama Akun</th>
                                     <th class="py-2.5 px-4">Kategori Sub-Kelompok</th>
-                                    <th class="py-2.5 px-4 text-center">Status Sistem</th>
+                                    <th class="py-2.5 px-4 text-center">Status</th>
+                                    <th class="py-2.5 px-4 text-right">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-stone-100">
                                 {#each groups.liability as coa}
-                                    <tr class="hover:bg-stone-50">
-                                        <td class="py-2.5 px-4 font-mono font-bold text-amber-800">{coa.code}</td>
+                                    <tr class="hover:bg-stone-50 {coa.is_active ? '' : 'opacity-60 bg-stone-50/50'}">
+                                        <td class="py-2.5 px-4 font-mono font-bold text-amber-700">{coa.code}</td>
                                         <td class="py-2.5 px-4 font-semibold text-stone-900">{coa.name}</td>
                                         <td class="py-2.5 px-4 text-stone-500">{coa.category}</td>
                                         <td class="py-2.5 px-4 text-center">
-                                            {#if coa.is_system}
-                                                <Badge variant="outline" class="text-[10px] py-0">SISTEM ISP</Badge>
+                                            {#if coa.is_active}
+                                                <Badge variant="success" class="text-[10px] py-0">Aktif</Badge>
                                             {:else}
-                                                <span class="text-stone-500 text-[11px]">Kustom</span>
+                                                <Badge variant="secondary" class="text-[10px] py-0 text-stone-500">Nonaktif</Badge>
                                             {/if}
+                                        </td>
+                                        <td class="py-2.5 px-4 text-right">
+                                            <div class="flex items-center justify-end gap-1.5">
+                                                <Button variant="ghost" size="sm" class="h-7 w-7 p-0" onclick={() => openEdit(coa)} title="Edit Akun">
+                                                    <Edit3 class="h-3.5 w-3.5 text-stone-600" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    class="h-7 w-7 p-0 {coa.is_active ? 'text-amber-600 hover:text-amber-700' : 'text-emerald-600 hover:text-emerald-700'}"
+                                                    onclick={() => toggleStatus(coa)}
+                                                    title={coa.is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+                                                >
+                                                    <Power class="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 {/each}
@@ -170,24 +243,41 @@
                         <table class="w-full text-xs text-left">
                             <thead class="border-b border-stone-200 text-stone-500 uppercase text-[10px] bg-stone-50">
                                 <tr>
-                                    <th class="py-2.5 px-4">Kode Akun</th>
+                                    <th class="py-2.5 px-4">Kode</th>
                                     <th class="py-2.5 px-4">Nama Akun</th>
                                     <th class="py-2.5 px-4">Kategori Sub-Kelompok</th>
-                                    <th class="py-2.5 px-4 text-center">Status Sistem</th>
+                                    <th class="py-2.5 px-4 text-center">Status</th>
+                                    <th class="py-2.5 px-4 text-right">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-stone-100">
                                 {#each groups.equity as coa}
-                                    <tr class="hover:bg-stone-50">
+                                    <tr class="hover:bg-stone-50 {coa.is_active ? '' : 'opacity-60 bg-stone-50/50'}">
                                         <td class="py-2.5 px-4 font-mono font-bold text-purple-700">{coa.code}</td>
                                         <td class="py-2.5 px-4 font-semibold text-stone-900">{coa.name}</td>
                                         <td class="py-2.5 px-4 text-stone-500">{coa.category}</td>
                                         <td class="py-2.5 px-4 text-center">
-                                            {#if coa.is_system}
-                                                <Badge variant="outline" class="text-[10px] py-0">SISTEM ISP</Badge>
+                                            {#if coa.is_active}
+                                                <Badge variant="success" class="text-[10px] py-0">Aktif</Badge>
                                             {:else}
-                                                <span class="text-stone-500 text-[11px]">Kustom</span>
+                                                <Badge variant="secondary" class="text-[10px] py-0 text-stone-500">Nonaktif</Badge>
                                             {/if}
+                                        </td>
+                                        <td class="py-2.5 px-4 text-right">
+                                            <div class="flex items-center justify-end gap-1.5">
+                                                <Button variant="ghost" size="sm" class="h-7 w-7 p-0" onclick={() => openEdit(coa)} title="Edit Akun">
+                                                    <Edit3 class="h-3.5 w-3.5 text-stone-600" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    class="h-7 w-7 p-0 {coa.is_active ? 'text-amber-600 hover:text-amber-700' : 'text-emerald-600 hover:text-emerald-700'}"
+                                                    onclick={() => toggleStatus(coa)}
+                                                    title={coa.is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+                                                >
+                                                    <Power class="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 {/each}
@@ -211,24 +301,41 @@
                         <table class="w-full text-xs text-left">
                             <thead class="border-b border-stone-200 text-stone-500 uppercase text-[10px] bg-stone-50">
                                 <tr>
-                                    <th class="py-2.5 px-4">Kode Akun</th>
+                                    <th class="py-2.5 px-4">Kode</th>
                                     <th class="py-2.5 px-4">Nama Akun</th>
                                     <th class="py-2.5 px-4">Kategori Sub-Kelompok</th>
-                                    <th class="py-2.5 px-4 text-center">Status Sistem</th>
+                                    <th class="py-2.5 px-4 text-center">Status</th>
+                                    <th class="py-2.5 px-4 text-right">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-stone-100">
                                 {#each groups.revenue as coa}
-                                    <tr class="hover:bg-stone-50">
+                                    <tr class="hover:bg-stone-50 {coa.is_active ? '' : 'opacity-60 bg-stone-50/50'}">
                                         <td class="py-2.5 px-4 font-mono font-bold text-emerald-700">{coa.code}</td>
                                         <td class="py-2.5 px-4 font-semibold text-stone-900">{coa.name}</td>
                                         <td class="py-2.5 px-4 text-stone-500">{coa.category}</td>
                                         <td class="py-2.5 px-4 text-center">
-                                            {#if coa.is_system}
-                                                <Badge variant="outline" class="text-[10px] py-0">SISTEM ISP</Badge>
+                                            {#if coa.is_active}
+                                                <Badge variant="success" class="text-[10px] py-0">Aktif</Badge>
                                             {:else}
-                                                <span class="text-stone-500 text-[11px]">Kustom</span>
+                                                <Badge variant="secondary" class="text-[10px] py-0 text-stone-500">Nonaktif</Badge>
                                             {/if}
+                                        </td>
+                                        <td class="py-2.5 px-4 text-right">
+                                            <div class="flex items-center justify-end gap-1.5">
+                                                <Button variant="ghost" size="sm" class="h-7 w-7 p-0" onclick={() => openEdit(coa)} title="Edit Akun">
+                                                    <Edit3 class="h-3.5 w-3.5 text-stone-600" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    class="h-7 w-7 p-0 {coa.is_active ? 'text-amber-600 hover:text-amber-700' : 'text-emerald-600 hover:text-emerald-700'}"
+                                                    onclick={() => toggleStatus(coa)}
+                                                    title={coa.is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+                                                >
+                                                    <Power class="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 {/each}
@@ -242,7 +349,7 @@
             <Card>
                 <CardHeader class="pb-3 border-b border-stone-200 flex flex-row items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <Badge variant="danger">5000 - BEBAN / PENGELUARAN (EXPENSES)</Badge>
+                        <Badge variant="danger">5000 - BEBAN OPERASIONAL (EXPENSES)</Badge>
                         <span class="text-xs text-stone-500">Saldo Normal: DEBIT</span>
                     </div>
                     <span class="text-xs text-stone-500 font-semibold">{groups.expense.length} Akun</span>
@@ -252,24 +359,41 @@
                         <table class="w-full text-xs text-left">
                             <thead class="border-b border-stone-200 text-stone-500 uppercase text-[10px] bg-stone-50">
                                 <tr>
-                                    <th class="py-2.5 px-4">Kode Akun</th>
+                                    <th class="py-2.5 px-4">Kode</th>
                                     <th class="py-2.5 px-4">Nama Akun</th>
                                     <th class="py-2.5 px-4">Kategori Sub-Kelompok</th>
-                                    <th class="py-2.5 px-4 text-center">Status Sistem</th>
+                                    <th class="py-2.5 px-4 text-center">Status</th>
+                                    <th class="py-2.5 px-4 text-right">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-stone-100">
                                 {#each groups.expense as coa}
-                                    <tr class="hover:bg-stone-50">
+                                    <tr class="hover:bg-stone-50 {coa.is_active ? '' : 'opacity-60 bg-stone-50/50'}">
                                         <td class="py-2.5 px-4 font-mono font-bold text-rose-700">{coa.code}</td>
                                         <td class="py-2.5 px-4 font-semibold text-stone-900">{coa.name}</td>
                                         <td class="py-2.5 px-4 text-stone-500">{coa.category}</td>
                                         <td class="py-2.5 px-4 text-center">
-                                            {#if coa.is_system}
-                                                <Badge variant="outline" class="text-[10px] py-0">SISTEM ISP</Badge>
+                                            {#if coa.is_active}
+                                                <Badge variant="success" class="text-[10px] py-0">Aktif</Badge>
                                             {:else}
-                                                <span class="text-stone-500 text-[11px]">Kustom</span>
+                                                <Badge variant="secondary" class="text-[10px] py-0 text-stone-500">Nonaktif</Badge>
                                             {/if}
+                                        </td>
+                                        <td class="py-2.5 px-4 text-right">
+                                            <div class="flex items-center justify-end gap-1.5">
+                                                <Button variant="ghost" size="sm" class="h-7 w-7 p-0" onclick={() => openEdit(coa)} title="Edit Akun">
+                                                    <Edit3 class="h-3.5 w-3.5 text-stone-600" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    class="h-7 w-7 p-0 {coa.is_active ? 'text-amber-600 hover:text-amber-700' : 'text-emerald-600 hover:text-emerald-700'}"
+                                                    onclick={() => toggleStatus(coa)}
+                                                    title={coa.is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+                                                >
+                                                    <Power class="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 {/each}
@@ -324,6 +448,54 @@
                 <Button type="button" variant="outline" onclick={() => (createModalOpen = false)}>Batal</Button>
                 <Button type="submit" disabled={form.processing}>
                     {form.processing ? 'Menyimpan...' : 'Simpan Akun COA'}
+                </Button>
+            </div>
+        </form>
+    </Dialog>
+
+    <!-- EDIT COA MODAL -->
+    <Dialog bind:open={editModalOpen} title={`Edit Akun COA: ${selectedCoa?.code ?? ''}`}>
+        <form onsubmit={handleEdit} class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1.5">
+                    <label for="edit_coa_code" class="text-xs font-semibold text-stone-700">Kode Akun</label>
+                    <Input id="edit_coa_code" bind:value={editForm.code} required />
+                </div>
+                <div class="space-y-1.5">
+                    <label for="edit_coa_type" class="text-xs font-semibold text-stone-700">Kelompok Akun</label>
+                    <Select id="edit_coa_type" bind:value={editForm.type} required>
+                        <option value="asset">Aset (1xxx)</option>
+                        <option value="liability">Kewajiban (2xxx)</option>
+                        <option value="equity">Ekuitas (3xxx)</option>
+                        <option value="revenue">Pendapatan (4xxx)</option>
+                        <option value="expense">Beban (5xxx)</option>
+                    </Select>
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <label for="edit_coa_name" class="text-xs font-semibold text-stone-700">Nama Akun</label>
+                <Input id="edit_coa_name" bind:value={editForm.name} required />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1.5">
+                    <label for="edit_coa_cat" class="text-xs font-semibold text-stone-700">Kategori Sub-Kelompok</label>
+                    <Input id="edit_coa_cat" bind:value={editForm.category} required />
+                </div>
+                <div class="space-y-1.5">
+                    <label for="edit_coa_bal" class="text-xs font-semibold text-stone-700">Saldo Normal</label>
+                    <Select id="edit_coa_bal" bind:value={editForm.normal_balance} required>
+                        <option value="debit">Debit</option>
+                        <option value="credit">Kredit</option>
+                    </Select>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onclick={() => (editModalOpen = false)}>Batal</Button>
+                <Button type="submit" disabled={editForm.processing}>
+                    {editForm.processing ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </Button>
             </div>
         </form>

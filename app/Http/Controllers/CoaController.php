@@ -40,6 +40,34 @@ class CoaController extends Controller
         return back()->with('success', "Akun COA {$coa->code} - {$coa->name} berhasil ditambahkan.");
     }
 
+    public function update(Request $request, ChartOfAccount $coa): RedirectResponse
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|max:20|unique:chart_of_accounts,code,' . $coa->id,
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:asset,liability,equity,revenue,expense',
+            'category' => 'required|string|max:100',
+            'normal_balance' => 'required|in:debit,credit',
+        ]);
+
+        $old = $coa->toArray();
+        $coa->update($validated);
+        AuditService::log('update_coa', 'accounting', 'ChartOfAccount', $coa->id, $old, $coa->toArray());
+
+        return back()->with('success', "Akun COA {$coa->code} - {$coa->name} berhasil diperbarui.");
+    }
+
+    public function toggleActive(ChartOfAccount $coa): RedirectResponse
+    {
+        $newStatus = !$coa->is_active;
+        $coa->update(['is_active' => $newStatus]);
+
+        $statusText = $newStatus ? 'diaktifkan' : 'dinonaktifkan';
+        AuditService::log('toggle_coa_status', 'accounting', 'ChartOfAccount', $coa->id, null, ['is_active' => $newStatus]);
+
+        return back()->with('success', "Akun COA {$coa->code} - {$coa->name} berhasil {$statusText}.");
+    }
+
     public function openingBalance(): Response
     {
         $coas = ChartOfAccount::where('is_active', true)->orderBy('code')->get();

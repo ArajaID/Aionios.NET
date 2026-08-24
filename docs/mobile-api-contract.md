@@ -501,7 +501,8 @@ Register/update:
 | Method | Path | Permission | Penggunaan |
 |---|---|---|---|
 | `GET` | `/reference/packages` | `reference.view` | Form customer/activation |
-| `GET` | `/reference/cash-bank-accounts` | `reference.view` | Payment, income, expense |
+| `GET` | `/reference/cash-bank-accounts` | `reference.view` | Payment, income, expense (termasuk linked COA asset & fallback) |
+| `GET` | `/reference/asset-accounts` | `reference.view` | Asset accounts (Kas, Bank, Piutang) |
 | `GET` | `/reference/revenue-accounts` | `reference.view` | Other income (revenue only) |
 | `GET` | `/reference/expense-accounts` | `reference.view` | Expense (expense only) |
 | `GET` | `/chart-of-accounts` | `coa.view` | Daftar lengkap COA dengan filter context (`payment`, `income`, `expense`, `billing`) |

@@ -145,3 +145,27 @@ test('can paginate coa list', function () {
     expect(count($res->json('data')))->toBe(5);
     expect($res->json('meta.per_page'))->toBe(5);
 });
+
+test('reference asset-accounts and cash-bank-accounts return coa asset data properly', function () {
+    Sanctum::actingAs($this->finance, RolePermissions::forRole($this->finance->role));
+
+    // 1. Asset accounts endpoint
+    $assetRes = $this->getJson('/api/v1/reference/asset-accounts')->assertOk();
+    $assets = $assetRes->json('data');
+    expect(count($assets))->toBeGreaterThan(0);
+    expect(collect($assets)->pluck('code')->all())->toContain('1110');
+
+    // 2. Cash & bank accounts reference with linked COA
+    $cbRes = $this->getJson('/api/v1/reference/cash-bank-accounts')->assertOk();
+    $cbs = $cbRes->json('data');
+    expect(count($cbs))->toBeGreaterThan(0);
+    expect($cbs[0])->toHaveKeys(['id', 'name', 'chart_of_account_id', 'chart_of_account_code', 'chart_of_account_name']);
+
+    // 3. Usage cash_bank returns asset COAs
+    $usageCbRes = $this->getJson('/api/v1/chart-of-accounts?usage=cash_bank')->assertOk();
+    $usageCbs = $usageCbRes->json('data');
+    expect(count($usageCbs))->toBeGreaterThan(0);
+    foreach ($usageCbs as $item) {
+        expect($item['type'])->toBe('asset');
+    }
+});

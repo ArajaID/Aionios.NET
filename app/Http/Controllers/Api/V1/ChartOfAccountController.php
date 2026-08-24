@@ -134,9 +134,12 @@ class ChartOfAccountController extends Controller
                     $builder->where(function (Builder $sub) {
                         $sub->where('type', 'asset')
                             ->where(function (Builder $cat) {
-                                $cat->where('category', 'Kas & Setara Kas')
-                                    ->orWhere('category', 'Piutang')
-                                    ->orWhere('code', '1210');
+                                $cat->where('category', 'like', '%Kas%')
+                                    ->orWhere('category', 'like', '%Bank%')
+                                    ->orWhere('category', 'like', '%Piutang%')
+                                    ->orWhere('code', 'like', '11%')
+                                    ->orWhere('code', '1210')
+                                    ->orWhereHas('cashBankAccounts');
                             });
                     })->orWhere('code', '5170'); // MDR Fee account
                 });
@@ -149,7 +152,12 @@ class ChartOfAccountController extends Controller
                     $builder->where('type', 'revenue')
                         ->orWhere(function (Builder $sub) {
                             $sub->where('type', 'asset')
-                                ->where('category', 'Kas & Setara Kas');
+                                ->where(function (Builder $cat) {
+                                    $cat->where('category', 'like', '%Kas%')
+                                        ->orWhere('category', 'like', '%Bank%')
+                                        ->orWhere('code', 'like', '11%')
+                                        ->orWhereHas('cashBankAccounts');
+                                });
                         });
                 });
                 break;
@@ -161,7 +169,12 @@ class ChartOfAccountController extends Controller
                     $builder->where('type', 'expense')
                         ->orWhere(function (Builder $sub) {
                             $sub->where('type', 'asset')
-                                ->where('category', 'Kas & Setara Kas');
+                                ->where(function (Builder $cat) {
+                                    $cat->where('category', 'like', '%Kas%')
+                                        ->orWhere('category', 'like', '%Bank%')
+                                        ->orWhere('code', 'like', '11%')
+                                        ->orWhereHas('cashBankAccounts');
+                                });
                         });
                 });
                 break;
@@ -174,7 +187,7 @@ class ChartOfAccountController extends Controller
                         ->orWhere(function (Builder $sub) {
                             $sub->where('type', 'asset')
                                 ->where(function (Builder $cat) {
-                                    $cat->where('category', 'Piutang')
+                                    $cat->where('category', 'like', '%Piutang%')
                                         ->orWhere('code', '1210');
                                 });
                         });
@@ -186,7 +199,9 @@ class ChartOfAccountController extends Controller
                 // Only Cash & Bank asset accounts
                 $query->where('type', 'asset')
                     ->where(function (Builder $builder) {
-                        $builder->where('category', 'Kas & Setara Kas')
+                        $builder->where('category', 'like', '%Kas%')
+                            ->orWhere('category', 'like', '%Bank%')
+                            ->orWhere('code', 'like', '11%')
                             ->orWhereHas('cashBankAccounts');
                     });
                 break;

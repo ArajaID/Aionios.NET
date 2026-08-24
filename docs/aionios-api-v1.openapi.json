@@ -7047,8 +7047,156 @@
         "/reference/cash-bank-accounts": {
             "get": {
                 "operationId": "reference.cashBankAccounts",
-                "description": "Daftar akun kas dan rekening bank aktif untuk transaksi pembayaran, pemasukan, dan pengeluaran.",
+                "description": "Daftar akun kas dan rekening bank aktif untuk transaksi pembayaran, pemasukan, dan pengeluaran.\nMengambil dari tabel cash_bank_accounts atau akun COA bertipe asset (Kas & Bank).",
                 "summary": "List Cash & Bank Accounts Reference",
+                "tags": [
+                    "Reference"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "bank_name": {
+                                                                "type": "string"
+                                                            },
+                                                            "account_number": {
+                                                                "type": "string"
+                                                            },
+                                                            "chart_of_account_id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "chart_of_account_code": {
+                                                                "type": "string"
+                                                            },
+                                                            "chart_of_account_name": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "name",
+                                                            "bank_name",
+                                                            "account_number",
+                                                            "chart_of_account_id",
+                                                            "chart_of_account_code",
+                                                            "chart_of_account_name"
+                                                        ]
+                                                    }
+                                                },
+                                                "meta": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data",
+                                                "meta"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "bank_name": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "account_number": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "chart_of_account_id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "chart_of_account_code": {
+                                                                "type": "string"
+                                                            },
+                                                            "chart_of_account_name": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "name",
+                                                            "bank_name",
+                                                            "account_number",
+                                                            "chart_of_account_id",
+                                                            "chart_of_account_code",
+                                                            "chart_of_account_name"
+                                                        ]
+                                                    }
+                                                },
+                                                "meta": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data",
+                                                "meta"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/reference/asset-accounts": {
+            "get": {
+                "operationId": "reference.assetAccounts",
+                "description": "Daftar akun aset (asset) aktif termasuk Kas, Bank, dan Piutang dari Chart of Accounts.",
+                "summary": "List Asset Accounts Reference",
                 "tags": [
                     "Reference"
                 ],
@@ -7074,27 +7222,17 @@
                                                     "id": {
                                                         "type": "integer"
                                                     },
-                                                    "name": {
+                                                    "code": {
                                                         "type": "string"
                                                     },
-                                                    "bank_name": {
-                                                        "type": [
-                                                            "string",
-                                                            "null"
-                                                        ]
-                                                    },
-                                                    "account_number": {
-                                                        "type": [
-                                                            "string",
-                                                            "null"
-                                                        ]
+                                                    "name": {
+                                                        "type": "string"
                                                     }
                                                 },
                                                 "required": [
                                                     "id",
-                                                    "name",
-                                                    "bank_name",
-                                                    "account_number"
+                                                    "code",
+                                                    "name"
                                                 ]
                                             }
                                         },
@@ -7248,7 +7386,7 @@
         },
         "/reference/chart-of-accounts": {
             "get": {
-                "operationId": "v1.reference.chartOfAccounts_74",
+                "operationId": "v1.reference.chartOfAccounts_75",
                 "description": "Daftar lengkap Chart of Accounts (COA) dengan filter konteks transaksi (payment, income, expense, billing).",
                 "summary": "List Chart of Accounts Reference",
                 "tags": [
@@ -7342,7 +7480,7 @@
         },
         "/reference/coas": {
             "get": {
-                "operationId": "v1.reference.chartOfAccounts_75",
+                "operationId": "v1.reference.chartOfAccounts_76",
                 "description": "Daftar lengkap Chart of Accounts (COA) dengan filter konteks transaksi (payment, income, expense, billing).",
                 "summary": "List Chart of Accounts Reference",
                 "tags": [

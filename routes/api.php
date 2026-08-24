@@ -119,6 +119,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('reference')->middleware('api.permission:reference.view')->group(function () {
             Route::get('/packages', [ReferenceController::class, 'packages']);
             Route::get('/cash-bank-accounts', [ReferenceController::class, 'cashBankAccounts']);
+            Route::get('/asset-accounts', [ReferenceController::class, 'assetAccounts']);
             Route::get('/revenue-accounts', [ReferenceController::class, 'revenueAccounts']);
             Route::get('/expense-accounts', [ReferenceController::class, 'expenseAccounts']);
             Route::get('/chart-of-accounts', [ReferenceController::class, 'chartOfAccounts'])->middleware('api.permission:coa.view');

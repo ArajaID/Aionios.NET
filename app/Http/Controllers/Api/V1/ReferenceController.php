@@ -36,15 +36,64 @@ class ReferenceController extends Controller
      * List Cash & Bank Accounts Reference
      *
      * Daftar akun kas dan rekening bank aktif untuk transaksi pembayaran, pemasukan, dan pengeluaran.
+     * Mengambil dari tabel cash_bank_accounts atau akun COA bertipe asset (Kas & Bank).
      */
     public function cashBankAccounts(): JsonResponse
     {
-        return ApiResponse::success(CashBankAccount::where('is_active', true)->orderBy('name')->get()->map(fn ($account) => [
+        $accounts = CashBankAccount::with('chartOfAccount')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        if ($accounts->isNotEmpty()) {
+            return ApiResponse::success($accounts->map(fn ($account) => [
+                'id' => $account->id,
+                'name' => $account->name,
+                'bank_name' => $account->bank_name,
+                'account_number' => $account->account_number,
+                'chart_of_account_id' => $account->chart_of_account_id,
+                'chart_of_account_code' => $account->chartOfAccount?->code,
+                'chart_of_account_name' => $account->chartOfAccount?->name,
+            ])->values());
+        }
+
+        // Fallback mengambil langsung dari COA asset (Kas & Bank)
+        $coaAssets = ChartOfAccount::where('type', 'asset')
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->where('category', 'like', '%Kas%')
+                    ->orWhere('category', 'like', '%Bank%')
+                    ->orWhere('code', 'like', '11%');
+            })
+            ->orderBy('code')
+            ->get();
+
+        if ($coaAssets->isEmpty()) {
+            $coaAssets = ChartOfAccount::where('type', 'asset')
+                ->where('is_active', true)
+                ->orderBy('code')
+                ->get();
+        }
+
+        return ApiResponse::success($coaAssets->map(fn ($account) => [
             'id' => $account->id,
             'name' => $account->name,
-            'bank_name' => $account->bank_name,
-            'account_number' => $account->account_number,
+            'bank_name' => $account->name,
+            'account_number' => $account->code,
+            'chart_of_account_id' => $account->id,
+            'chart_of_account_code' => $account->code,
+            'chart_of_account_name' => $account->name,
         ])->values());
+    }
+
+    /**
+     * List Asset Accounts Reference
+     *
+     * Daftar akun aset (asset) aktif termasuk Kas, Bank, dan Piutang dari Chart of Accounts.
+     */
+    public function assetAccounts(): JsonResponse
+    {
+        return $this->accounts('asset');
     }
 
     /**

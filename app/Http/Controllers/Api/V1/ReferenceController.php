@@ -8,9 +8,18 @@ use App\Models\ChartOfAccount;
 use App\Models\Package;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
+/**
+ * @tags Reference
+ */
 class ReferenceController extends Controller
 {
+    /**
+     * List Packages Reference
+     *
+     * Daftar paket internet aktif untuk form registrasi atau perubahan paket pelanggan.
+     */
     public function packages(): JsonResponse
     {
         return ApiResponse::success(Package::where('is_active', true)->orderBy('name')->get()->map(fn ($package) => [
@@ -23,6 +32,11 @@ class ReferenceController extends Controller
         ])->values());
     }
 
+    /**
+     * List Cash & Bank Accounts Reference
+     *
+     * Daftar akun kas dan rekening bank aktif untuk transaksi pembayaran, pemasukan, dan pengeluaran.
+     */
     public function cashBankAccounts(): JsonResponse
     {
         return ApiResponse::success(CashBankAccount::where('is_active', true)->orderBy('name')->get()->map(fn ($account) => [
@@ -33,14 +47,34 @@ class ReferenceController extends Controller
         ])->values());
     }
 
+    /**
+     * List Revenue Accounts Reference
+     *
+     * Daftar akun pendapatan (revenue) aktif untuk form pemasukan lain-lain.
+     */
     public function revenueAccounts(): JsonResponse
     {
         return $this->accounts('revenue');
     }
 
+    /**
+     * List Expense Accounts Reference
+     *
+     * Daftar akun beban (expense) aktif untuk form pengeluaran operasional.
+     */
     public function expenseAccounts(): JsonResponse
     {
         return $this->accounts('expense');
+    }
+
+    /**
+     * List Chart of Accounts Reference
+     *
+     * Daftar lengkap Chart of Accounts (COA) dengan filter konteks transaksi (payment, income, expense, billing).
+     */
+    public function chartOfAccounts(Request $request, ChartOfAccountController $coaController): JsonResponse
+    {
+        return $coaController->index($request);
     }
 
     private function accounts(string $type): JsonResponse

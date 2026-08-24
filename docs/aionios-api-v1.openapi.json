@@ -62,1052 +62,6 @@
                 "security": []
             }
         },
-        "/chart-of-accounts": {
-            "get": {
-                "operationId": "v1.chartOfAccount.index_66",
-                "description": "Retrieve a list of Chart of Accounts with flexible transaction context filtering for mobile operations (Payment, Income, Expense, Billing).",
-                "summary": "List Chart of Accounts (COA)",
-                "tags": [
-                    "Accounting & References",
-                    "ChartOfAccount"
-                ],
-                "parameters": [
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 255
-                        }
-                    },
-                    {
-                        "name": "type",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "category",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 255
-                        }
-                    },
-                    {
-                        "name": "usage",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "payment",
-                                "pembayaran",
-                                "income",
-                                "pemasukan",
-                                "expense",
-                                "pengeluaran",
-                                "billing",
-                                "tagihan",
-                                "cash_bank",
-                                "kas_bank",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "for",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "payment",
-                                "pembayaran",
-                                "income",
-                                "pemasukan",
-                                "expense",
-                                "pengeluaran",
-                                "billing",
-                                "tagihan",
-                                "cash_bank",
-                                "kas_bank",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "is_active",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "include_cash_bank",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "sort",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "code",
-                                "-code",
-                                "name",
-                                "-name",
-                                "type",
-                                "-type",
-                                "created_at",
-                                "-created_at",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "per_page",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "integer",
-                                "null"
-                            ],
-                            "minimum": 1,
-                            "maximum": 200
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "anyOf": [
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "success": {
-                                                    "type": "boolean"
-                                                },
-                                                "message": {
-                                                    "type": "null"
-                                                },
-                                                "data": {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                "meta": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "success",
-                                                "message",
-                                                "data",
-                                                "meta"
-                                            ]
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "success": {
-                                                    "type": "boolean"
-                                                },
-                                                "message": {
-                                                    "type": "null"
-                                                },
-                                                "data": {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                "meta": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "current_page": {
-                                                            "type": "integer"
-                                                        },
-                                                        "per_page": {
-                                                            "type": "integer"
-                                                        },
-                                                        "total": {
-                                                            "type": "integer"
-                                                        },
-                                                        "last_page": {
-                                                            "type": "integer"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "current_page",
-                                                        "per_page",
-                                                        "total",
-                                                        "last_page"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "success",
-                                                "message",
-                                                "data",
-                                                "meta"
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/chart-of-accounts/{chartOfAccount}": {
-            "get": {
-                "operationId": "v1.chartOfAccount.show_67",
-                "description": "Retrieve detailed information for a specific Chart of Account by its ID, including linked cash & bank accounts.",
-                "summary": "Get Single Chart of Account Detail",
-                "tags": [
-                    "Accounting & References",
-                    "ChartOfAccount"
-                ],
-                "parameters": [
-                    {
-                        "name": "chartOfAccount",
-                        "in": "path",
-                        "required": true,
-                        "description": "The chart of account ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "type": "null"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {}
-                                        },
-                                        "meta": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "data",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/coas": {
-            "get": {
-                "operationId": "v1.chartOfAccount.index_68",
-                "description": "Retrieve a list of Chart of Accounts with flexible transaction context filtering for mobile operations (Payment, Income, Expense, Billing).",
-                "summary": "List Chart of Accounts (COA)",
-                "tags": [
-                    "Accounting & References",
-                    "ChartOfAccount"
-                ],
-                "parameters": [
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 255
-                        }
-                    },
-                    {
-                        "name": "type",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "category",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 255
-                        }
-                    },
-                    {
-                        "name": "usage",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "payment",
-                                "pembayaran",
-                                "income",
-                                "pemasukan",
-                                "expense",
-                                "pengeluaran",
-                                "billing",
-                                "tagihan",
-                                "cash_bank",
-                                "kas_bank",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "for",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "payment",
-                                "pembayaran",
-                                "income",
-                                "pemasukan",
-                                "expense",
-                                "pengeluaran",
-                                "billing",
-                                "tagihan",
-                                "cash_bank",
-                                "kas_bank",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "is_active",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "include_cash_bank",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "sort",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "code",
-                                "-code",
-                                "name",
-                                "-name",
-                                "type",
-                                "-type",
-                                "created_at",
-                                "-created_at",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "per_page",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "integer",
-                                "null"
-                            ],
-                            "minimum": 1,
-                            "maximum": 200
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "anyOf": [
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "success": {
-                                                    "type": "boolean"
-                                                },
-                                                "message": {
-                                                    "type": "null"
-                                                },
-                                                "data": {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                "meta": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "success",
-                                                "message",
-                                                "data",
-                                                "meta"
-                                            ]
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "success": {
-                                                    "type": "boolean"
-                                                },
-                                                "message": {
-                                                    "type": "null"
-                                                },
-                                                "data": {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                "meta": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "current_page": {
-                                                            "type": "integer"
-                                                        },
-                                                        "per_page": {
-                                                            "type": "integer"
-                                                        },
-                                                        "total": {
-                                                            "type": "integer"
-                                                        },
-                                                        "last_page": {
-                                                            "type": "integer"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "current_page",
-                                                        "per_page",
-                                                        "total",
-                                                        "last_page"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "success",
-                                                "message",
-                                                "data",
-                                                "meta"
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/coas/{chartOfAccount}": {
-            "get": {
-                "operationId": "v1.chartOfAccount.show_69",
-                "description": "Retrieve detailed information for a specific Chart of Account by its ID, including linked cash & bank accounts.",
-                "summary": "Get Single Chart of Account Detail",
-                "tags": [
-                    "Accounting & References",
-                    "ChartOfAccount"
-                ],
-                "parameters": [
-                    {
-                        "name": "chartOfAccount",
-                        "in": "path",
-                        "required": true,
-                        "description": "The chart of account ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "type": "null"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {}
-                                        },
-                                        "meta": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "data",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/reference/chart-of-accounts": {
-            "get": {
-                "operationId": "v1.chartOfAccount.index_74",
-                "description": "Retrieve a list of Chart of Accounts with flexible transaction context filtering for mobile operations (Payment, Income, Expense, Billing).",
-                "summary": "List Chart of Accounts (COA)",
-                "tags": [
-                    "Accounting & References",
-                    "ChartOfAccount"
-                ],
-                "parameters": [
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 255
-                        }
-                    },
-                    {
-                        "name": "type",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "category",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 255
-                        }
-                    },
-                    {
-                        "name": "usage",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "payment",
-                                "pembayaran",
-                                "income",
-                                "pemasukan",
-                                "expense",
-                                "pengeluaran",
-                                "billing",
-                                "tagihan",
-                                "cash_bank",
-                                "kas_bank",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "for",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "payment",
-                                "pembayaran",
-                                "income",
-                                "pemasukan",
-                                "expense",
-                                "pengeluaran",
-                                "billing",
-                                "tagihan",
-                                "cash_bank",
-                                "kas_bank",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "is_active",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "include_cash_bank",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "sort",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "code",
-                                "-code",
-                                "name",
-                                "-name",
-                                "type",
-                                "-type",
-                                "created_at",
-                                "-created_at",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "per_page",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "integer",
-                                "null"
-                            ],
-                            "minimum": 1,
-                            "maximum": 200
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "anyOf": [
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "success": {
-                                                    "type": "boolean"
-                                                },
-                                                "message": {
-                                                    "type": "null"
-                                                },
-                                                "data": {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                "meta": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "success",
-                                                "message",
-                                                "data",
-                                                "meta"
-                                            ]
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "success": {
-                                                    "type": "boolean"
-                                                },
-                                                "message": {
-                                                    "type": "null"
-                                                },
-                                                "data": {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                "meta": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "current_page": {
-                                                            "type": "integer"
-                                                        },
-                                                        "per_page": {
-                                                            "type": "integer"
-                                                        },
-                                                        "total": {
-                                                            "type": "integer"
-                                                        },
-                                                        "last_page": {
-                                                            "type": "integer"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "current_page",
-                                                        "per_page",
-                                                        "total",
-                                                        "last_page"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "success",
-                                                "message",
-                                                "data",
-                                                "meta"
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/reference/coas": {
-            "get": {
-                "operationId": "v1.chartOfAccount.index_75",
-                "description": "Retrieve a list of Chart of Accounts with flexible transaction context filtering for mobile operations (Payment, Income, Expense, Billing).",
-                "summary": "List Chart of Accounts (COA)",
-                "tags": [
-                    "Accounting & References",
-                    "ChartOfAccount"
-                ],
-                "parameters": [
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 255
-                        }
-                    },
-                    {
-                        "name": "type",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "category",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 255
-                        }
-                    },
-                    {
-                        "name": "usage",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "payment",
-                                "pembayaran",
-                                "income",
-                                "pemasukan",
-                                "expense",
-                                "pengeluaran",
-                                "billing",
-                                "tagihan",
-                                "cash_bank",
-                                "kas_bank",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "for",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "payment",
-                                "pembayaran",
-                                "income",
-                                "pemasukan",
-                                "expense",
-                                "pengeluaran",
-                                "billing",
-                                "tagihan",
-                                "cash_bank",
-                                "kas_bank",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "is_active",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "include_cash_bank",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "sort",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "code",
-                                "-code",
-                                "name",
-                                "-name",
-                                "type",
-                                "-type",
-                                "created_at",
-                                "-created_at",
-                                null
-                            ]
-                        }
-                    },
-                    {
-                        "name": "per_page",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "integer",
-                                "null"
-                            ],
-                            "minimum": 1,
-                            "maximum": 200
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "anyOf": [
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "success": {
-                                                    "type": "boolean"
-                                                },
-                                                "message": {
-                                                    "type": "null"
-                                                },
-                                                "data": {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                "meta": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "success",
-                                                "message",
-                                                "data",
-                                                "meta"
-                                            ]
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "success": {
-                                                    "type": "boolean"
-                                                },
-                                                "message": {
-                                                    "type": "null"
-                                                },
-                                                "data": {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                "meta": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "current_page": {
-                                                            "type": "integer"
-                                                        },
-                                                        "per_page": {
-                                                            "type": "integer"
-                                                        },
-                                                        "total": {
-                                                            "type": "integer"
-                                                        },
-                                                        "last_page": {
-                                                            "type": "integer"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "current_page",
-                                                        "per_page",
-                                                        "total",
-                                                        "last_page"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "success",
-                                                "message",
-                                                "data",
-                                                "meta"
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
         "/approvals/summary": {
             "get": {
                 "operationId": "approval.summary",
@@ -2800,6 +1754,590 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/chart-of-accounts": {
+            "get": {
+                "operationId": "v1.chartOfAccount.index_66",
+                "description": "Retrieve a list of Chart of Accounts with flexible transaction context filtering for mobile operations (Payment, Income, Expense, Billing).",
+                "summary": "List Chart of Accounts (COA)",
+                "tags": [
+                    "Chart of Accounts",
+                    "ChartOfAccount"
+                ],
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "usage",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "payment",
+                                "pembayaran",
+                                "income",
+                                "pemasukan",
+                                "expense",
+                                "pengeluaran",
+                                "billing",
+                                "tagihan",
+                                "cash_bank",
+                                "kas_bank",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "for",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "payment",
+                                "pembayaran",
+                                "income",
+                                "pemasukan",
+                                "expense",
+                                "pengeluaran",
+                                "billing",
+                                "tagihan",
+                                "cash_bank",
+                                "kas_bank",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "include_cash_bank",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "code",
+                                "-code",
+                                "name",
+                                "-name",
+                                "type",
+                                "-type",
+                                "created_at",
+                                "-created_at",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 200
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "meta": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data",
+                                                "meta"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "meta": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "current_page": {
+                                                            "type": "integer"
+                                                        },
+                                                        "per_page": {
+                                                            "type": "integer"
+                                                        },
+                                                        "total": {
+                                                            "type": "integer"
+                                                        },
+                                                        "last_page": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "current_page",
+                                                        "per_page",
+                                                        "total",
+                                                        "last_page"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data",
+                                                "meta"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/chart-of-accounts/{chartOfAccount}": {
+            "get": {
+                "operationId": "v1.chartOfAccount.show_67",
+                "description": "Retrieve detailed information for a specific Chart of Account by its ID, including linked cash & bank accounts.",
+                "summary": "Get Single Chart of Account Detail",
+                "tags": [
+                    "Chart of Accounts",
+                    "ChartOfAccount"
+                ],
+                "parameters": [
+                    {
+                        "name": "chartOfAccount",
+                        "in": "path",
+                        "required": true,
+                        "description": "The chart of account ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "meta": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/coas": {
+            "get": {
+                "operationId": "v1.chartOfAccount.index_68",
+                "description": "Retrieve a list of Chart of Accounts with flexible transaction context filtering for mobile operations (Payment, Income, Expense, Billing).",
+                "summary": "List Chart of Accounts (COA)",
+                "tags": [
+                    "Chart of Accounts",
+                    "ChartOfAccount"
+                ],
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "usage",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "payment",
+                                "pembayaran",
+                                "income",
+                                "pemasukan",
+                                "expense",
+                                "pengeluaran",
+                                "billing",
+                                "tagihan",
+                                "cash_bank",
+                                "kas_bank",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "for",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "payment",
+                                "pembayaran",
+                                "income",
+                                "pemasukan",
+                                "expense",
+                                "pengeluaran",
+                                "billing",
+                                "tagihan",
+                                "cash_bank",
+                                "kas_bank",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "include_cash_bank",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "code",
+                                "-code",
+                                "name",
+                                "-name",
+                                "type",
+                                "-type",
+                                "created_at",
+                                "-created_at",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 200
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "meta": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data",
+                                                "meta"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "meta": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "current_page": {
+                                                            "type": "integer"
+                                                        },
+                                                        "per_page": {
+                                                            "type": "integer"
+                                                        },
+                                                        "total": {
+                                                            "type": "integer"
+                                                        },
+                                                        "last_page": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "current_page",
+                                                        "per_page",
+                                                        "total",
+                                                        "last_page"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data",
+                                                "meta"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/coas/{chartOfAccount}": {
+            "get": {
+                "operationId": "v1.chartOfAccount.show_69",
+                "description": "Retrieve detailed information for a specific Chart of Account by its ID, including linked cash & bank accounts.",
+                "summary": "Get Single Chart of Account Detail",
+                "tags": [
+                    "Chart of Accounts",
+                    "ChartOfAccount"
+                ],
+                "parameters": [
+                    {
+                        "name": "chartOfAccount",
+                        "in": "path",
+                        "required": true,
+                        "description": "The chart of account ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "meta": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
@@ -7433,6 +6971,8 @@
         "/reference/packages": {
             "get": {
                 "operationId": "reference.packages",
+                "description": "Daftar paket internet aktif untuk form registrasi atau perubahan paket pelanggan.",
+                "summary": "List Packages Reference",
                 "tags": [
                     "Reference"
                 ],
@@ -7507,6 +7047,8 @@
         "/reference/cash-bank-accounts": {
             "get": {
                 "operationId": "reference.cashBankAccounts",
+                "description": "Daftar akun kas dan rekening bank aktif untuk transaksi pembayaran, pemasukan, dan pengeluaran.",
+                "summary": "List Cash & Bank Accounts Reference",
                 "tags": [
                     "Reference"
                 ],
@@ -7579,6 +7121,8 @@
         "/reference/revenue-accounts": {
             "get": {
                 "operationId": "reference.revenueAccounts",
+                "description": "Daftar akun pendapatan (revenue) aktif untuk form pemasukan lain-lain.",
+                "summary": "List Revenue Accounts Reference",
                 "tags": [
                     "Reference"
                 ],
@@ -7641,6 +7185,8 @@
         "/reference/expense-accounts": {
             "get": {
                 "operationId": "reference.expenseAccounts",
+                "description": "Daftar akun beban (expense) aktif untuk form pengeluaran operasional.",
+                "summary": "List Expense Accounts Reference",
                 "tags": [
                     "Reference"
                 ],
@@ -7689,6 +7235,194 @@
                                         "message",
                                         "data",
                                         "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/reference/chart-of-accounts": {
+            "get": {
+                "operationId": "v1.reference.chartOfAccounts_74",
+                "description": "Daftar lengkap Chart of Accounts (COA) dengan filter konteks transaksi (payment, income, expense, billing).",
+                "summary": "List Chart of Accounts Reference",
+                "tags": [
+                    "Reference"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "meta": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data",
+                                                "meta"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "meta": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "current_page": {
+                                                            "type": "integer"
+                                                        },
+                                                        "per_page": {
+                                                            "type": "integer"
+                                                        },
+                                                        "total": {
+                                                            "type": "integer"
+                                                        },
+                                                        "last_page": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "current_page",
+                                                        "per_page",
+                                                        "total",
+                                                        "last_page"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data",
+                                                "meta"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/reference/coas": {
+            "get": {
+                "operationId": "v1.reference.chartOfAccounts_75",
+                "description": "Daftar lengkap Chart of Accounts (COA) dengan filter konteks transaksi (payment, income, expense, billing).",
+                "summary": "List Chart of Accounts Reference",
+                "tags": [
+                    "Reference"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "meta": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data",
+                                                "meta"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "meta": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "current_page": {
+                                                            "type": "integer"
+                                                        },
+                                                        "per_page": {
+                                                            "type": "integer"
+                                                        },
+                                                        "total": {
+                                                            "type": "integer"
+                                                        },
+                                                        "last_page": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "current_page",
+                                                        "per_page",
+                                                        "total",
+                                                        "last_page"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data",
+                                                "meta"
+                                            ]
+                                        }
                                     ]
                                 }
                             }

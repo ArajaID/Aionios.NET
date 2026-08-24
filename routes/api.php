@@ -121,8 +121,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/cash-bank-accounts', [ReferenceController::class, 'cashBankAccounts']);
             Route::get('/revenue-accounts', [ReferenceController::class, 'revenueAccounts']);
             Route::get('/expense-accounts', [ReferenceController::class, 'expenseAccounts']);
-            Route::get('/chart-of-accounts', [ChartOfAccountController::class, 'index'])->middleware('api.permission:coa.view');
-            Route::get('/coas', [ChartOfAccountController::class, 'index'])->middleware('api.permission:coa.view');
+            Route::get('/chart-of-accounts', [ReferenceController::class, 'chartOfAccounts'])->middleware('api.permission:coa.view');
+            Route::get('/coas', [ReferenceController::class, 'chartOfAccounts'])->middleware('api.permission:coa.view');
         });
     });
 });

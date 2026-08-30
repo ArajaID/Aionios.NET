@@ -496,7 +496,7 @@ Register/update:
 
 `platform`: `android` atau `ios`. Push token dienkripsi di database dan tidak pernah dikirim kembali pada response.
 
-### Reference data & Chart of Accounts (COA)
+### Reference data
 
 | Method | Path | Permission | Penggunaan |
 |---|---|---|---|
@@ -505,25 +505,81 @@ Register/update:
 | `GET` | `/reference/asset-accounts` | `reference.view` | Asset accounts (Kas, Bank, Piutang) |
 | `GET` | `/reference/revenue-accounts` | `reference.view` | Other income (revenue only) |
 | `GET` | `/reference/expense-accounts` | `reference.view` | Expense (expense only) |
-| `GET` | `/chart-of-accounts` | `coa.view` | Daftar lengkap COA dengan filter context (`payment`, `income`, `expense`, `billing`) |
-| `GET` | `/chart-of-accounts/{id}` | `coa.view` | Detail satu akun COA beserta relasi Kas/Bank |
 
-> **Catatan Otorisasi COA:** Endpoint `/chart-of-accounts` dilindungi oleh permission `coa.view` yang hanya dimiliki oleh role `owner` dan `admin_keuangan`. Role `admin_jaringan` akan menerima `403 FORBIDDEN`.
+---
 
-#### Query Parameters `/chart-of-accounts`:
-- `usage` / `for`: Filter kontekstual transaksi:
-  - `payment` / `pembayaran`: Mengambil akun Kas/Bank, Piutang Usaha Pelanggan (`1210`), dan Beban MDR QRIS (`5170`).
-  - `income` / `pemasukan`: Mengambil akun Pendapatan (`type=revenue`) dan akun Kas/Bank penerima.
-  - `expense` / `pengeluaran`: Mengambil akun Beban (`type=expense`) dan akun Kas/Bank pembayar.
-  - `billing` / `tagihan`: Mengambil akun Piutang Usaha Pelanggan (`1210`) dan Pendapatan Langganan (`4110`).
-  - `cash_bank` / `kas_bank`: Mengambil seluruh akun kas dan bank aktif.
-- `type`: Filter tipe akun (`asset`, `liability`, `equity`, `revenue`, `expense`). Dapat berupa single atau comma-separated (contoh: `type=revenue,expense`).
-- `category`: Filter string kategori akun (contoh: `Kas & Setara Kas`, `Beban Operasional`).
-- `search` / `q`: Pencarian berdasarkan kode atau nama akun (contoh: `search=bca` atau `search=5110`).
-- `is_active`: `true` (default), `false`, atau `all`.
-- `per_page`: Mengaktifkan pagination standar jika diisi integer (contoh: `per_page=20`).
+## 8. Panduan Integrasi Chart of Accounts (COA)
 
-#### Response Example `/chart-of-accounts`:
+Fitur Chart of Accounts (COA) dirancang khusus untuk memfasilitasi transaksi finansial operasional ISP pada 4 modul utama di aplikasi mobile:
+1. **Pembayaran (Payments)**
+2. **Pemasukan (Other Incomes)**
+3. **Pengeluaran (Expenses)**
+4. **Tagihan (Billing & Invoices)**
+
+### 8.1. Hak Akses & Keamanan (Role-Based Authorization)
+
+Endpoint COA dilindungi secara ketat dan **hanya dapat diakses oleh role finansial**:
+- **Owner (`owner`)**: Memiliki izin penuh `coa.view`
+- **Admin Keuangan (`admin_keuangan`)**: Memiliki izin penuh `coa.view`
+- **Admin Jaringan (`admin_jaringan`)**: **Tidak memiliki akses** (Server mengembalikan `403 FORBIDDEN`)
+
+### 8.2. Matriks Transaksi Finansial & Relasi Akun COA
+
+| Modul Mobile | Tipe Akun Terlibat | Akun COA Standar ISP | Posisi Jurnal | Catatan Penggunaan di Mobile |
+|---|---|---|---|---|
+| **Pembayaran**<br>*(Payment)* | `asset`, `expense` | • `1110` Kas Kasir Utama<br>• `1120` Bank BCA Operasional<br>• `1130` Bank BRI Penerimaan<br>• `1140` QRIS Settlement Merchant<br>• `1210` Piutang Usaha Pelanggan<br>• `5170` Beban MDR QRIS | • Kas/Bank (**Debit**)<br>• Beban MDR QRIS (**Debit** jika QRIS)<br>• Piutang Usaha (**Kredit**) | Dipanggil saat user menerima pembayaran tagihan dari pelanggan (Manual Tunai/Transfer atau QRIS). |
+| **Pemasukan**<br>*(Other Income)* | `revenue`, `asset` | • `4110` Pendapatan Langganan<br>• `4210` Pendapatan Instalasi & Lain<br>• `1110`-`1140` Kas/Bank | • Kas/Bank (**Debit**)<br>• Pendapatan (**Kredit**) | Digunakan pada form input pemasukan non-tagihan (biaya pasang baru, penjualan perangkat ONT/router, jasa maintenance). |
+| **Pengeluaran**<br>*(Expense)* | `expense`, `asset` | • `5110` Beban Bandwidth & Upstream<br>• `5120` Beban Listrik & POP Shelter<br>• `5130` Beban Gaji & Tim<br>• `5140` Beban Pemeliharaan Kabel<br>• `5150` Beban Bensin & Transport<br>• `5160` Beban Sewa Tiang FO<br>• `5180` Beban Operasional Lain<br>• `1110`-`1140` Kas/Bank | • Beban Operasional (**Debit**)<br>• Kas/Bank (**Kredit**) | Digunakan saat teknisi/admin membuat voucher pengeluaran operasional di lapangan. |
+| **Tagihan**<br>*(Billing/Invoices)* | `asset`, `revenue` | • `1210` Piutang Usaha Pelanggan<br>• `4110` Pendapatan Langganan Internet | • Piutang Usaha (**Debit**)<br>• Pendapatan Internet (**Kredit**) | Referensi saat generate invoice, adjustment tagihan, dan rekonsiliasi status tagihan pelanggan. |
+
+### 8.3. Spesifikasi Endpoint COA
+
+| Method | Path | Permission | Penggunaan |
+|---|---|---|---|
+| `GET` | `/chart-of-accounts` (alias: `/coas`) | `coa.view` | Daftar lengkap COA dengan filter kontekstual transaksi |
+| `GET` | `/chart-of-accounts/{id}` (alias: `/coas/{id}`) | `coa.view` | Detail satu akun COA beserta relasi Kas/Bank |
+
+#### Query Parameters:
+
+| Parameter | Tipe | Contoh | Keterangan |
+|---|---|---|---|
+| `usage` / `for` | string | `payment`, `income`, `expense`, `billing`, `cash_bank` | Filter instan sesuai form transaksi di mobile (sangat direkomendasikan). |
+| `type` | string | `revenue` atau `revenue,expense` | Filter berdasarkan tipe: `asset`, `liability`, `equity`, `revenue`, `expense`. |
+| `category` | string | `Kas & Setara Kas` | Filter berdasarkan kategori akun. |
+| `search` / `q` | string | `QRIS` atau `5110` | Pencarian teks pada kode, nama, atau kategori. |
+| `is_active` | string / bool | `true` (default), `false`, `all` | Filter status keaktifan akun. |
+| `per_page` | integer | `20` | Mengaktifkan format pagination jika diisi. |
+| `sort` | string | `code`, `-code`, `name`, `-name` | Pengurutan data (default: `code` ascending). |
+
+#### Contoh Request berdasarkan Form di Mobile:
+
+1. **Untuk Form Pemasukan (Other Income):**
+   ```http
+   GET /api/v1/chart-of-accounts?usage=income HTTP/1.1
+   Authorization: Bearer <token>
+   ```
+   *Mengembalikan seluruh akun Pendapatan (`type=revenue`) untuk pilihan kategori pemasukan, dan akun Kas/Bank (`type=asset`) untuk tujuan setor dana.*
+
+2. **Untuk Form Pengeluaran (Expense):**
+   ```http
+   GET /api/v1/chart-of-accounts?usage=expense HTTP/1.1
+   Authorization: Bearer <token>
+   ```
+   *Mengembalikan seluruh akun Beban (`type=expense`) untuk pilihan jenis pengeluaran, dan akun Kas/Bank sumber dana.*
+
+3. **Untuk Form Pembayaran (Payment):**
+   ```http
+   GET /api/v1/chart-of-accounts?usage=payment HTTP/1.1
+   Authorization: Bearer <token>
+   ```
+
+4. **Pencarian Cepat (Auto-Complete Search):**
+   ```http
+   GET /api/v1/chart-of-accounts?search=bensin HTTP/1.1
+   Authorization: Bearer <token>
+   ```
+
+#### Contoh Response Sukses (200 OK):
 ```json
 {
   "success": true,
@@ -554,8 +610,24 @@ Register/update:
 }
 ```
 
+### 8.4. Rekomendasi Best Practice untuk Mobile Developer
 
-## 8. Idempotency behavior
+1. **Local Caching**:
+   Data COA relatif jarang berubah. Simpan data COA di SQLite / Hive / Room / CoreData lokal saat startup aplikasi setelah login berhasil, dan lakukan sinkronisasi berkala (misal 1x sehari atau tombol Refresh manual).
+2. **Pengelompokan Dropdown UI (Grouping)**:
+   Pada form Pengeluaran dan Pemasukan, kelompokkan akun dropdown berdasarkan field `category` (misalnya: *Beban Operasional*, *Beban Pokok*, *Pendapatan Lain*).
+3. **Format Tampilan Dropdown**:
+   Rekomendasi format tampilan item di dropdown aplikasi:
+   `[CODE] - [NAME]`  
+   Contoh: `5150 - Beban Transportasi & Kendaraan Tim`
+4. **Integrasi Form Transaksi**:
+   - Untuk `POST /incomes` (Pemasukan): Kirim `revenue_account_id` yang dipilih dari COA bertipe `revenue`.
+   - Untuk `POST /expenses` (Pengeluaran): Kirim `expense_account_id` yang dipilih dari COA bertipe `expense`.
+   - Untuk `POST /payments` (Pembayaran): Kirim `cash_bank_account_id` yang diperoleh dari `cash_bank_accounts` pada COA bertipe `asset`.
+
+---
+
+## 9. Idempotency behavior
 
 Mobile membuat satu UUID baru ketika user memulai aksi dan mempertahankan UUID yang sama selama retry otomatis.
 
@@ -564,7 +636,7 @@ Mobile membuat satu UUID baru ketika user memulai aksi dan mempertahankan UUID y
 - Request awal masih diproses: `409 IDEMPOTENCY_REQUEST_IN_PROGRESS`.
 - Jangan memakai ulang key untuk aksi pengguna yang berbeda.
 
-## 9. Alur integrasi mobile
+## 10. Alur integrasi mobile
 
 ### Startup
 
@@ -589,7 +661,7 @@ Mobile membuat satu UUID baru ketika user memulai aksi dan mempertahankan UUID y
 3. Poll job dengan interval wajar.
 4. Hentikan polling pada `success` atau `failed`.
 
-## 10. Dokumentasi dan client generation
+## 11. Dokumentasi dan client generation
 
 - Scramble UI lokal: `/docs/api`
 - OpenAPI JSON runtime: `/docs/api.json`

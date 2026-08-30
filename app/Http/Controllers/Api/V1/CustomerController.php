@@ -28,8 +28,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+/**
+ * @tags Pelanggan (Customers)
+ */
 class CustomerController extends Controller
 {
+    /**
+     * Daftar Pelanggan
+     *
+     * Menampilkan daftar seluruh pelanggan internet dengan kemampuan pencarian (nama, ID pelanggan, telepon, username PPP), filter status (pending, active, isolated, terminated), filter paket, sorting, dan paginasi data.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -62,6 +73,14 @@ class CustomerController extends Controller
         return ApiResponse::paginated($paginator, CustomerResource::collection($paginator->getCollection())->resolve());
     }
 
+    /**
+     * Registrasi Pelanggan Baru
+     *
+     * Mendaftarkan calon pelanggan baru ke dalam sistem dengan status awal 'pending'. Pelanggan yang didaftarkan belum memiliki perangkat modem ONT dan belum aktif di router MikroTik sampai proses aktivasi instalasi dilakukan.
+     *
+     * @param StoreCustomerRequest $request
+     * @return JsonResponse
+     */
     public function store(StoreCustomerRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -91,11 +110,28 @@ class CustomerController extends Controller
         );
     }
 
+    /**
+     * Detail Profil Pelanggan
+     *
+     * Menampilkan profil lengkap pelanggan mencakup identitas, alamat, koordinat, paket internet aktif, modem ONT yang terpasang, dan akun PPPoE router.
+     *
+     * @param Customer $customer
+     * @return JsonResponse
+     */
     public function show(Customer $customer): JsonResponse
     {
         return ApiResponse::success((new CustomerResource($customer->load(['package', 'ont', 'pppAccount'])))->resolve());
     }
 
+    /**
+     * Perbarui Data Pelanggan
+     *
+     * Memperbarui data profil pelanggan seperti nama, nomor telepon, alamat pemasangan, koordinat lokasi, nomor identitas KTP, atau catatan teknis.
+     *
+     * @param UpdateCustomerRequest $request
+     * @param Customer $customer
+     * @return JsonResponse
+     */
     public function update(UpdateCustomerRequest $request, Customer $customer): JsonResponse
     {
         $old = $customer->only(['name', 'phone', 'address', 'notes']);
@@ -108,6 +144,21 @@ class CustomerController extends Controller
         );
     }
 
+    /**
+     * Aktivasi Instalasi Pelanggan Baru
+     *
+     * Menyelesaikan proses instalasi dan mengaktifkan pelanggan:
+     * 1. Menetapkan hardware modem ONT dari gudang ke pelanggan.
+     * 2. Membuat kredensial PPPoE dan menjadwalkan job sinkronisasi ke router MikroTik.
+     * 3. Menerbitkan tagihan invoice perdana (prorata atau full).
+     * 4. Mengubah status pelanggan menjadi 'active'.
+     *
+     * @param ActivateCustomerRequest $request
+     * @param Customer $customer
+     * @param BillingService $billingService
+     * @param NetworkQueueService $networkQueue
+     * @return JsonResponse
+     */
     public function activate(
         ActivateCustomerRequest $request,
         Customer $customer,
@@ -195,6 +246,20 @@ class CustomerController extends Controller
         ], 'Customer activated; network synchronization queued.', 202);
     }
 
+    /**
+     * Terminasi / Berhenti Berlangganan
+     *
+     * Memutus layanan pelanggan secara permanen:
+     * 1. Mengubah status pelanggan menjadi 'terminated'.
+     * 2. Menjadwalkan penonaktifan/penghapusan akun PPPoE di MikroTik RouterOS.
+     * 3. Menarik modem ONT kembali ke gudang (status 'returned') jika perangkat ditarik.
+     * 4. Membatalkan tagihan belum berjalan yang belum lunas.
+     *
+     * @param CustomerLifecycleRequest $request
+     * @param Customer $customer
+     * @param NetworkQueueService $networkQueue
+     * @return JsonResponse
+     */
     public function terminate(
         CustomerLifecycleRequest $request,
         Customer $customer,
@@ -240,6 +305,21 @@ class CustomerController extends Controller
         ], 'Customer terminated; network synchronization queued.', 202);
     }
 
+    /**
+     * Reaktivasi Pelanggan Terminasi
+     *
+     * Mengaktifkan kembali pelanggan yang sebelumnya telah diputus/terminasi:
+     * 1. Memvalidasi tidak ada sisa tunggakan tagihan lama.
+     * 2. Menetapkan paket baru dan modem ONT baru jika belum terpasang.
+     * 3. Mengaktifkan kembali profil PPPoE di router MikroTik.
+     * 4. Menerbitkan invoice baru dan mengubah status pelanggan kembali menjadi 'active'.
+     *
+     * @param ReactivateCustomerRequest $request
+     * @param Customer $customer
+     * @param BillingService $billingService
+     * @param NetworkQueueService $networkQueue
+     * @return JsonResponse
+     */
     public function reactivate(
         ReactivateCustomerRequest $request,
         Customer $customer,
@@ -326,6 +406,20 @@ class CustomerController extends Controller
         ], 'Customer reactivated; network synchronization queued.', 202);
     }
 
+    /**
+     * Perubahan Paket Layanan Internet
+     *
+     * Memperbarui paket internet pelanggan:
+     * - Upgrade (paket setara/lebih tinggi): Langsung diproses dan antrean update bandwidth di MikroTik dijadwalkan seketika.
+     * - Downgrade (paket lebih rendah):
+     *   - Jika diajukan Owner: Langsung diterapkan.
+     *   - Jika diajukan Staff: Masuk ke antrean pengajuan (PackageChangeRequest) untuk menunggu persetujuan Owner.
+     *
+     * @param Request $request
+     * @param Customer $customer
+     * @param NetworkQueueService $networkQueue
+     * @return JsonResponse
+     */
     public function changePackage(
         Request $request,
         Customer $customer,

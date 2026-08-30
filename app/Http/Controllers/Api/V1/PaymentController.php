@@ -19,8 +19,19 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Throwable;
 
+/**
+ * @tags Pembayaran (Payments)
+ */
 class PaymentController extends Controller
 {
+    /**
+     * Daftar Transaksi Pembayaran
+     *
+     * Menampilkan riwayat transaksi pembayaran tagihan invoice pelanggan dengan pencarian nomor bayar/nama/ID pelanggan, filter metode bayar (manual/qris), filter status (posted/reversed), sorting, dan paginasi data.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -52,6 +63,14 @@ class PaymentController extends Controller
         return ApiResponse::paginated($paginator, PaymentResource::collection($paginator->getCollection())->resolve());
     }
 
+    /**
+     * Detail Transaksi Pembayaran
+     *
+     * Menampilkan rincian transaksi pembayaran tertentu, mencakup akun kas/bank penerima dana, alokasi nominal ke nomor-nomor invoice tagihan, dan rincian potongan MDR jika bayar via QRIS.
+     *
+     * @param Payment $payment
+     * @return JsonResponse
+     */
     public function show(Payment $payment): JsonResponse
     {
         return ApiResponse::success((new PaymentResource(
@@ -59,6 +78,20 @@ class PaymentController extends Controller
         ))->resolve());
     }
 
+    /**
+     * Pratinjau Alokasi Pembayaran Tagihan
+     *
+     * Melakukan simulasi perhitungan pembayaran sebelum transaksi dibukukan secara permanen:
+     * - Memvalidasi ketersediaan invoice tertunggak dan menerapkan alokasi berurutan (FIFO).
+     * - Menghitung estimasi potongan fee MDR jika metode pembayaran QRIS dipilih.
+     * - Memastikan periode akuntansi pada tanggal transaksi berstatus terbuka (open).
+     * - Menghasilkan token `preview_reference` (berlaku 10 menit) serta simulasi jurnal debit dan kredit.
+     *
+     * @param PaymentPreviewRequest $request
+     * @param PaymentService $payments
+     * @param PreviewReferenceService $references
+     * @return JsonResponse
+     */
     public function preview(
         PaymentPreviewRequest $request,
         PaymentService $payments,
@@ -114,6 +147,20 @@ class PaymentController extends Controller
         ]);
     }
 
+    /**
+     * Simpan Transaksi Pembayaran Tagihan
+     *
+     * Membukukan pembayaran tagihan secara definitif menggunakan token `preview_reference` yang valid:
+     * - Mengubah status invoice menjadi 'paid' (lunas).
+     * - Menambah saldo akun kas/bank penerima dana.
+     * - Membuat jurnal akuntansi penerimaan kas otomatis.
+     * - Menjadwalkan pembukaan blokir isolir pelanggan secara otomatis jika pelanggan berstatus 'isolated'.
+     *
+     * @param StorePaymentRequest $request
+     * @param PaymentService $payments
+     * @param PreviewReferenceService $references
+     * @return JsonResponse
+     */
     public function store(
         StorePaymentRequest $request,
         PaymentService $payments,
@@ -166,6 +213,15 @@ class PaymentController extends Controller
         );
     }
 
+    /**
+     * Ajukan Reversal (Pembatalan) Pembayaran
+     *
+     * Petugas mengajukan permohonan pembatalan transaksi pembayaran salah catat atau duplikat (ReversalRequest) ke Owner untuk diverifikasi dan disetujui.
+     *
+     * @param CustomerLifecycleRequest $request
+     * @param Payment $payment
+     * @return JsonResponse
+     */
     public function requestReversal(CustomerLifecycleRequest $request, Payment $payment): JsonResponse
     {
         if ($payment->status !== 'posted') {

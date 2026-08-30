@@ -39,7 +39,7 @@ Berikut adalah matriks keterhubungan modul transaksi di aplikasi mobile dengan a
 ## 3. Spesifikasi Endpoint API
 
 ### 3.1. List Chart of Accounts
-`GET /api/v1/chart-of-accounts` (atau alias `GET /api/v1/reference/chart-of-accounts` / `GET /api/v1/coas`)
+`GET /api/v1/chart-of-accounts` (atau alias `GET /api/v1/coas`)
 
 #### Query Parameters:
 

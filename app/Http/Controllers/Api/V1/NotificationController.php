@@ -10,8 +10,19 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Notifikasi (Notifications)
+ */
 class NotificationController extends Controller
 {
+    /**
+     * Daftar Notifikasi Pengguna
+     *
+     * Menampilkan daftar notifikasi sistem untuk pengguna yang login (notifikasi personal, notifikasi berdasarkan role, atau notifikasi global sistem) dengan filter status belum dibaca (unread) dan paginasi.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -27,11 +38,28 @@ class NotificationController extends Controller
         return ApiResponse::paginated($paginator, NotificationResource::collection($paginator->getCollection())->resolve());
     }
 
+    /**
+     * Jumlah Notifikasi Belum Dibaca
+     *
+     * Menghitung total pemberitahuan sistem yang belum dibaca (unread) oleh pengguna yang sedang login.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function unreadCount(Request $request): JsonResponse
     {
         return ApiResponse::success(['count' => $this->visible($request)->where('is_read', false)->count()]);
     }
 
+    /**
+     * Tandai Notifikasi Telah Dibaca
+     *
+     * Mengubah status satu pesan notifikasi tertentu menjadi sudah dibaca (is_read = true).
+     *
+     * @param Request $request
+     * @param Notification $notification
+     * @return JsonResponse
+     */
     public function read(Request $request, Notification $notification): JsonResponse
     {
         if (! $this->visible($request)->whereKey($notification->id)->exists()) {
@@ -42,6 +70,14 @@ class NotificationController extends Controller
         return ApiResponse::success((new NotificationResource($notification))->resolve(), 'Notification marked as read.');
     }
 
+    /**
+     * Tandai Semua Notifikasi Telah Dibaca
+     *
+     * Mengubah seluruh pesan notifikasi belum dibaca milik pengguna menjadi sudah dibaca sekaligus.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function readAll(Request $request): JsonResponse
     {
         $count = $this->visible($request)->where('is_read', false)->update(['is_read' => true]);

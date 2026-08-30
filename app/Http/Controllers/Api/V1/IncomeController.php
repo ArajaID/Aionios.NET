@@ -20,8 +20,19 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
+/**
+ * @tags Pemasukan (Incomes)
+ */
 class IncomeController extends Controller
 {
+    /**
+     * Daftar Pemasukan Lain (Other Incomes)
+     *
+     * Menampilkan riwayat transaksi penerimaan kas non-langganan (seperti biaya instalasi baru, denda keterlambatan, penjualan perangkat, atau jasa lainnya) dengan pencarian dan paginasi data.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -40,11 +51,32 @@ class IncomeController extends Controller
         return ApiResponse::paginated($paginator, IncomeResource::collection($paginator->getCollection())->resolve());
     }
 
+    /**
+     * Detail Pemasukan Lain
+     *
+     * Menampilkan rincian lengkap transaksi penerimaan kas non-langganan berdasarkan ID transaksi, termasuk akun pendapatan dan akun kas/bank penerima dana.
+     *
+     * @param OtherIncome $income
+     * @return JsonResponse
+     */
     public function show(OtherIncome $income): JsonResponse
     {
         return ApiResponse::success((new IncomeResource($income->load(['chartOfAccount', 'cashBankAccount'])))->resolve());
     }
 
+    /**
+     * Pratinjau Jurnal Pemasukan Lain
+     *
+     * Melakukan validasi transaksi sebelum pembukuan final:
+     * - Memastikan periode akuntansi pada tanggal transaksi berstatus terbuka (open).
+     * - Memverifikasi ketersediaan akun pendapatan (revenue) dan akun kas/bank penerima dana.
+     * - Menghasilkan token `preview_reference` (berlaku 10 menit) serta simulasi jurnal debit dan kredit.
+     *
+     * @param IncomePreviewRequest $request
+     * @param AccountingService $accounting
+     * @param PreviewReferenceService $references
+     * @return JsonResponse
+     */
     public function preview(
         IncomePreviewRequest $request,
         AccountingService $accounting,
@@ -86,6 +118,19 @@ class IncomeController extends Controller
         ]);
     }
 
+    /**
+     * Simpan Transaksi Pemasukan Lain
+     *
+     * Membukukan penerimaan kas non-langganan secara definitif menggunakan token `preview_reference` yang valid:
+     * - Menambah saldo akun kas/bank penerima dana.
+     * - Mencatat jurnal akuntansi berimbang otomatis (Debit Kas/Bank, Kredit Pendapatan).
+     * - Mencatat riwayat audit trail transaksi.
+     *
+     * @param StoreIncomeRequest $request
+     * @param AccountingService $accounting
+     * @param PreviewReferenceService $references
+     * @return JsonResponse
+     */
     public function store(
         StoreIncomeRequest $request,
         AccountingService $accounting,

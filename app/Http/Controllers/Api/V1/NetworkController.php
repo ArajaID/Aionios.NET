@@ -15,8 +15,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
+/**
+ * @tags Jaringan & MikroTik (Network)
+ */
 class NetworkController extends Controller
 {
+    /**
+     * Status Koneksi Router MikroTik & Antrean
+     *
+     * Menampilkan status konektivitas router MikroTik utama (online/offline/unconfigured), waktu sinkronisasi terakhir, dan ringkasan antrean perintah jaringan (pending, processing, failed).
+     *
+     * @return JsonResponse
+     */
     public function status(): JsonResponse
     {
         $router = MikrotikRouter::where('is_active', true)->first();
@@ -36,6 +46,14 @@ class NetworkController extends Controller
         ]);
     }
 
+    /**
+     * Daftar Antrean Perintah Jaringan
+     *
+     * Menampilkan riwayat antrean perintah jaringan (PPPoE secret, isolate, unisolate, update profile) dengan filter status (pending, processing, success, failed), jenis perintah, dan paginasi data.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function jobs(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -55,11 +73,28 @@ class NetworkController extends Controller
         return ApiResponse::paginated($paginator, NetworkJobResource::collection($paginator->getCollection())->resolve());
     }
 
+    /**
+     * Detail Antrean Perintah Jaringan
+     *
+     * Menampilkan detail satu tugas/perintah jaringan, mencakup payload parameter perintah, waktu eksekusi, jumlah percobaan ulang, dan pesan kesalahan dari MikroTik jika gagal.
+     *
+     * @param NetworkJob $job
+     * @return JsonResponse
+     */
     public function job(NetworkJob $job): JsonResponse
     {
         return ApiResponse::success((new NetworkJobResource($job))->resolve());
     }
 
+    /**
+     * Coba Ulang Perintah Jaringan yang Gagal
+     *
+     * Menjadwalkan ulang eksekusi perintah jaringan yang sebelumnya gagal agar diproses kembali oleh worker antrean background.
+     *
+     * @param NetworkJob $job
+     * @param NetworkQueueService $queue
+     * @return JsonResponse
+     */
     public function retry(NetworkJob $job, NetworkQueueService $queue): JsonResponse
     {
         try {
@@ -72,6 +107,14 @@ class NetworkController extends Controller
         return ApiResponse::success((new NetworkJobResource($job))->resolve(), 'Network job queued for retry.', 202);
     }
 
+    /**
+     * Status Jaringan & PPPoE Pelanggan
+     *
+     * Mengambil data status jaringan pelanggan: akun PPPoE, profil bandwidth, IP address terkini, status konektivitas, serta job jaringan terakhir pelanggan.
+     *
+     * @param Customer $customer
+     * @return JsonResponse
+     */
     public function customer(Customer $customer): JsonResponse
     {
         $customer->load('pppAccount');
@@ -92,11 +135,29 @@ class NetworkController extends Controller
         ]);
     }
 
+    /**
+     * Sinkronisasi Profil PPPoE Pelanggan ke Router
+     *
+     * Menjadwalkan antrean sinkronisasi paksa profil PPPoE pelanggan dari database lokal ke router MikroTik RouterOS.
+     *
+     * @param Customer $customer
+     * @param NetworkQueueService $queue
+     * @return JsonResponse
+     */
     public function sync(Customer $customer, NetworkQueueService $queue): JsonResponse
     {
         return $this->queue($customer, 'sync', $queue);
     }
 
+    /**
+     * Isolir Akses Internet Pelanggan
+     *
+     * Memblokir akses internet pelanggan yang menunggak tagihan dengan memindahkan profile PPPoE ke profil isolir di router MikroTik dan mengubah status pelanggan menjadi 'isolated'.
+     *
+     * @param Customer $customer
+     * @param NetworkQueueService $queue
+     * @return JsonResponse
+     */
     public function isolate(Customer $customer, NetworkQueueService $queue): JsonResponse
     {
         if ($customer->status !== 'active') {
@@ -106,6 +167,15 @@ class NetworkController extends Controller
         return $this->queue($customer, 'isolate', $queue);
     }
 
+    /**
+     * Buka Isolir Akses Internet Pelanggan
+     *
+     * Membuka blokir akses internet pelanggan setelah tagihan dilunasi, memulihkan profil PPPoE normal di router MikroTik, dan mengubah status pelanggan kembali menjadi 'active'.
+     *
+     * @param Customer $customer
+     * @param NetworkQueueService $queue
+     * @return JsonResponse
+     */
     public function unisolate(Customer $customer, NetworkQueueService $queue): JsonResponse
     {
         if ($customer->status !== 'isolated') {

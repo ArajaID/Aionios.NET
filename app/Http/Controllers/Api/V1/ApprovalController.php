@@ -16,7 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * @tags Approvals
+ * @tags Persetujuan (Approvals)
  */
 class ApprovalController extends Controller
 {

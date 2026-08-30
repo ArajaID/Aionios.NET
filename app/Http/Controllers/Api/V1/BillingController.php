@@ -12,8 +12,20 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Billing & Tagihan
+ */
 class BillingController extends Controller
 {
+    /**
+     * Daftar Tagihan Pelanggan
+     *
+     * Mengambil riwayat seluruh invoice/tagihan milik pelanggan tertentu dengan filter status pembayaran (unpaid, paid, overdue, cancelled) dan paginasi data.
+     *
+     * @param Customer $customer
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function customerInvoices(Customer $customer, Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -29,6 +41,14 @@ class BillingController extends Controller
         return ApiResponse::paginated($paginator, InvoiceResource::collection($paginator->getCollection())->resolve());
     }
 
+    /**
+     * Tagihan Belum Terbayar Pelanggan
+     *
+     * Mengambil daftar seluruh invoice yang masih berstatus belum lunas (unpaid atau overdue) untuk pelanggan tertentu beserta total akumulasi tunggakan.
+     *
+     * @param Customer $customer
+     * @return JsonResponse
+     */
     public function outstanding(Customer $customer): JsonResponse
     {
         $invoices = $customer->unpaidInvoices()->with('customer')->orderBy('period')->get();
@@ -44,6 +64,14 @@ class BillingController extends Controller
         ]);
     }
 
+    /**
+     * Detail Tagihan Invoice
+     *
+     * Menampilkan rincian lengkap sebuah tagihan/invoice, termasuk data pelanggan, rincian subtotal, diskon/potongan, dan riwayat pengajuan penyesuaian (adjustment) jika ada.
+     *
+     * @param Invoice $invoice
+     * @return JsonResponse
+     */
     public function invoice(Invoice $invoice): JsonResponse
     {
         return ApiResponse::success(
@@ -51,6 +79,17 @@ class BillingController extends Controller
         );
     }
 
+    /**
+     * Penyesuaian Nominal Tagihan
+     *
+     * Mengubah nominal subtotal atau diskon sebuah invoice:
+     * - Jika dilakukan oleh Owner: Perubahan nominal langsung diterapkan seketika ke invoice.
+     * - Jika dilakukan oleh Staff: Sistem membuat pengajuan penyesuaian (InvoiceAdjustmentRequest) yang masuk ke antrean approval Owner.
+     *
+     * @param Request $request
+     * @param Invoice $invoice
+     * @return JsonResponse
+     */
     public function adjust(Request $request, Invoice $invoice): JsonResponse
     {
         $validated = $request->validate([

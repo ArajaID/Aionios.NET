@@ -11,14 +11,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * @tags Chart of Accounts
+ * @tags Bagan Akun (Chart of Accounts)
  */
 class ChartOfAccountController extends Controller
 {
     /**
-     * List Chart of Accounts (COA)
+     * Daftar Bagan Akun (Chart of Accounts)
      *
-     * Retrieve a list of Chart of Accounts with flexible transaction context filtering for mobile operations (Payment, Income, Expense, Billing).
+     * Mengambil daftar Chart of Accounts (COA) dengan filter konteks transaksi (payment, income, expense, billing), pencarian kode/nama akun, filter status aktif, dan opsi paginasi data.
      *
      * @param Request $request
      * @return JsonResponse
@@ -108,9 +108,9 @@ class ChartOfAccountController extends Controller
     }
 
     /**
-     * Get Single Chart of Account Detail
+     * Detail Bagan Akun (COA)
      *
-     * Retrieve detailed information for a specific Chart of Account by its ID, including linked cash & bank accounts.
+     * Menampilkan informasi detail satu akun COA tertentu berdasarkan ID, termasuk data relasi rekening kas & bank yang terhubung.
      *
      * @param ChartOfAccount $chartOfAccount
      * @return JsonResponse

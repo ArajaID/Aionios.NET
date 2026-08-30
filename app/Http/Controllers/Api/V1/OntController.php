@@ -15,8 +15,19 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @tags Inventori ONT (ONT Inventory)
+ */
 class OntController extends Controller
 {
+    /**
+     * Daftar Inventori Modem ONT
+     *
+     * Menampilkan katalog perangkat modem ONT di gudang maupun yang terpasang di pelanggan, dengan pencarian (ONT ID, nomor seri, merk, tipe, MAC address), filter status (available, installed, returned, damaged, lost), dan paginasi data.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -47,11 +58,28 @@ class OntController extends Controller
         return ApiResponse::paginated($paginator, OntResource::collection($paginator->getCollection())->resolve());
     }
 
+    /**
+     * Detail Modem ONT
+     *
+     * Menampilkan data spesifikasi lengkap modem ONT, status ketersediaan, serta informasi pelanggan yang sedang menggunakan perangkat tersebut (jika berstatus installed).
+     *
+     * @param Ont $ont
+     * @return JsonResponse
+     */
     public function show(Ont $ont): JsonResponse
     {
         return ApiResponse::success((new OntResource($ont->load('currentCustomer')))->resolve());
     }
 
+    /**
+     * Riwayat Mutasi / Penggunaan Modem ONT
+     *
+     * Menampilkan log riwayat perpindahan perangkat ONT: kapan dipasang ke pelanggan, ditarik kembali, diperbaiki, atau ditandai rusak beserta identitas teknisi/petugas yang mencatat.
+     *
+     * @param Ont $ont
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function history(Ont $ont, Request $request): JsonResponse
     {
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
@@ -73,6 +101,15 @@ class OntController extends Controller
         return ApiResponse::paginated($history, $data);
     }
 
+    /**
+     * Pasang Modem ONT ke Pelanggan
+     *
+     * Mengalokasikan perangkat modem ONT berstatus 'available' ke pelanggan tertentu. Status ONT otomatis berubah menjadi 'installed' dan riwayat pemasangan dicatat ke log mutasi.
+     *
+     * @param AssignOntRequest $request
+     * @param Customer $customer
+     * @return JsonResponse
+     */
     public function assign(AssignOntRequest $request, Customer $customer): JsonResponse
     {
         try {
@@ -115,6 +152,15 @@ class OntController extends Controller
         return ApiResponse::success((new OntResource($ont->load('currentCustomer')))->resolve(), 'ONT assigned successfully.');
     }
 
+    /**
+     * Tarik / Kembalikan Modem ONT dari Pelanggan
+     *
+     * Melepaskan keterikatan modem ONT dari pelanggan dan mengembalikannya ke inventori dengan status baru (available, returned, damaged, atau lost).
+     *
+     * @param ReturnOntRequest $request
+     * @param Customer $customer
+     * @return JsonResponse
+     */
     public function return(ReturnOntRequest $request, Customer $customer): JsonResponse
     {
         if ($customer->ont_id === null) {
@@ -149,6 +195,13 @@ class OntController extends Controller
         return ApiResponse::success((new OntResource($ont->load('currentCustomer')))->resolve(), 'ONT returned successfully.');
     }
 
+    /**
+     * Usulan Nomor ID Registrasi ONT Baru
+     *
+     * Menghasilkan usulan format ID registrasi ONT baru berikutnya yang unik (contoh: ONT-00012) untuk memudahkan proses input perangkat baru ke sistem inventori.
+     *
+     * @return JsonResponse
+     */
     public function suggestedId(): JsonResponse
     {
         $existingOntIds = Ont::pluck('ont_id')->toArray();
@@ -167,6 +220,14 @@ class OntController extends Controller
         return ApiResponse::success(['suggested_ont_id' => $suggestedId]);
     }
 
+    /**
+     * Tambah Perangkat Modem ONT Baru
+     *
+     * Mendaftarkan hardware modem/ONT baru ke database inventori gudang dengan status awal 'available'.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([

@@ -10,8 +10,19 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Perangkat Mobile (Devices)
+ */
 class DeviceController extends Controller
 {
+    /**
+     * Registrasi Token Perangkat Mobile
+     *
+     * Mendaftarkan atau memperbarui token push notification (FCM / APNs) perangkat mobile petugas teknis atau kasir untuk menerima notifikasi sistem.
+     *
+     * @param DeviceRequest $request
+     * @return JsonResponse
+     */
     public function store(DeviceRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -32,6 +43,15 @@ class DeviceController extends Controller
         return ApiResponse::success($this->payload($device), 'Device registered.', $device->wasRecentlyCreated ? 201 : 200);
     }
 
+    /**
+     * Perbarui Data Perangkat Mobile
+     *
+     * Memperbarui token push notification, versi aplikasi, atau waktu aktif terakhir perangkat mobile milik pengguna.
+     *
+     * @param DeviceRequest $request
+     * @param MobileDevice $device
+     * @return JsonResponse
+     */
     public function update(DeviceRequest $request, MobileDevice $device): JsonResponse
     {
         if ($device->user_id !== $request->user()->id) {
@@ -49,6 +69,15 @@ class DeviceController extends Controller
         return ApiResponse::success($this->payload($device), 'Device updated.');
     }
 
+    /**
+     * Hapus Registrasi Perangkat Mobile
+     *
+     * Menghapus token perangkat mobile pengguna saat logout dari aplikasi mobile agar tidak lagi dikirimkan push notification.
+     *
+     * @param Request $request
+     * @param MobileDevice $device
+     * @return JsonResponse
+     */
     public function destroy(Request $request, MobileDevice $device): JsonResponse
     {
         if ($device->user_id !== $request->user()->id) {

@@ -18,7 +18,6 @@ beforeEach(function () {
 
 test('unauthenticated user cannot access mobile coa endpoints', function () {
     $this->getJson('/api/v1/chart-of-accounts')->assertUnauthorized();
-    $this->getJson('/api/v1/reference/chart-of-accounts')->assertUnauthorized();
     $this->getJson('/api/v1/coas')->assertUnauthorized();
 });
 
@@ -26,7 +25,6 @@ test('network admin is forbidden from accessing coa endpoints', function () {
     Sanctum::actingAs($this->network, RolePermissions::forRole($this->network->role));
 
     $this->getJson('/api/v1/chart-of-accounts')->assertForbidden();
-    $this->getJson('/api/v1/reference/chart-of-accounts')->assertForbidden();
     $this->getJson('/api/v1/coas')->assertForbidden();
 });
 
@@ -54,9 +52,8 @@ test('finance admin and owner can list all active chart of accounts', function (
 
     expect(count($response->json('data')))->toBeGreaterThan(5);
 
-    // Verify owner can also access via reference endpoint
+    // Verify owner can also access via coas alias endpoint
     Sanctum::actingAs($this->owner, RolePermissions::forRole($this->owner->role));
-    $this->getJson('/api/v1/reference/chart-of-accounts')->assertOk();
     $this->getJson('/api/v1/coas')->assertOk();
 });
 

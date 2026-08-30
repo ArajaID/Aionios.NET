@@ -507,7 +507,6 @@ Register/update:
 | `GET` | `/reference/expense-accounts` | `reference.view` | Expense (expense only) |
 | `GET` | `/chart-of-accounts` | `coa.view` | Daftar lengkap COA dengan filter context (`payment`, `income`, `expense`, `billing`) |
 | `GET` | `/chart-of-accounts/{id}` | `coa.view` | Detail satu akun COA beserta relasi Kas/Bank |
-| `GET` | `/reference/chart-of-accounts` | `coa.view` | Alias reference untuk COA |
 
 > **Catatan Otorisasi COA:** Endpoint `/chart-of-accounts` dilindungi oleh permission `coa.view` yang hanya dimiliki oleh role `owner` dan `admin_keuangan`. Role `admin_jaringan` akan menerima `403 FORBIDDEN`.
 

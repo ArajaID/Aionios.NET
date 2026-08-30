@@ -21,8 +21,19 @@ use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
+/**
+ * @tags Pengeluaran (Expenses)
+ */
 class ExpenseController extends Controller
 {
+    /**
+     * Daftar Pengeluaran Kas
+     *
+     * Menampilkan riwayat transaksi beban/pengeluaran kas operasional dengan filter pencarian nomor/keterangan, filter status (draft, pending, approved, rejected), sorting, dan paginasi data.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -47,6 +58,14 @@ class ExpenseController extends Controller
         return ApiResponse::paginated($paginator, ExpenseResource::collection($paginator->getCollection())->resolve());
     }
 
+    /**
+     * Detail Pengeluaran Kas
+     *
+     * Menampilkan rincian lengkap transaksi pengeluaran kas, termasuk akun beban COA, akun kas/bank asal dana, petugas pembuat, status persetujuan, dan lampiran bukti transaksi.
+     *
+     * @param Expense $expense
+     * @return JsonResponse
+     */
     public function show(Expense $expense): JsonResponse
     {
         return ApiResponse::success((new ExpenseResource(
@@ -54,6 +73,14 @@ class ExpenseController extends Controller
         ))->resolve());
     }
 
+    /**
+     * Buat Draft Pengeluaran Kas
+     *
+     * Mencatat transaksi pengeluaran kas baru dengan status awal 'draft'. Mendukung unggah berkas bukti transaksi (nota, kuitansi, struk).
+     *
+     * @param StoreExpenseRequest $request
+     * @return JsonResponse
+     */
     public function store(StoreExpenseRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -89,6 +116,15 @@ class ExpenseController extends Controller
         );
     }
 
+    /**
+     * Ajukan Pengeluaran ke Owner
+     *
+     * Mengajukan catatan pengeluaran berstatus 'draft' ke antrean persetujuan Owner (status berubah menjadi 'pending').
+     *
+     * @param Request $request
+     * @param Expense $expense
+     * @return JsonResponse
+     */
     public function submit(Request $request, Expense $expense): JsonResponse
     {
         if ($expense->status !== 'draft') {
@@ -119,6 +155,19 @@ class ExpenseController extends Controller
         );
     }
 
+    /**
+     * Setujui Pengeluaran Kas (Owner Only)
+     *
+     * Owner menyetujui pengajuan pengeluaran kas:
+     * - Memvalidasi periode akuntansi pada tanggal pengeluaran masih berstatus open.
+     * - Memotong saldo akun kas/bank asal dana.
+     * - Membuat jurnal akuntansi berimbang otomatis (Debit Beban, Kredit Kas/Bank).
+     * - Mengubah status pengeluaran menjadi 'approved'.
+     *
+     * @param Expense $expense
+     * @param AccountingService $accounting
+     * @return JsonResponse
+     */
     public function approve(Expense $expense, AccountingService $accounting): JsonResponse
     {
         if ($expense->status !== 'pending') {
@@ -170,6 +219,15 @@ class ExpenseController extends Controller
         );
     }
 
+    /**
+     * Tolak Pengeluaran Kas (Owner Only)
+     *
+     * Owner menolak pengajuan pengeluaran kas dengan melampirkan alasan penolakan. Saldo kas tidak dipotong dan tidak ada jurnal akuntansi yang dicatat.
+     *
+     * @param RejectExpenseRequest $request
+     * @param Expense $expense
+     * @return JsonResponse
+     */
     public function reject(RejectExpenseRequest $request, Expense $expense): JsonResponse
     {
         if ($expense->status !== 'pending') {
@@ -205,6 +263,14 @@ class ExpenseController extends Controller
         );
     }
 
+    /**
+     * Unduh Lampiran Bukti Pengeluaran
+     *
+     * Mengunduh berkas gambar atau dokumen lampiran bukti transaksi pengeluaran (nota/kuitansi/struk).
+     *
+     * @param Expense $expense
+     * @return StreamedResponse|JsonResponse
+     */
     public function attachment(Expense $expense): StreamedResponse|JsonResponse
     {
         if (! $expense->attachment_path || ! Storage::disk('local')->exists($expense->attachment_path)) {

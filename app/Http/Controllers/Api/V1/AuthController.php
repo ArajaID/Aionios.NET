@@ -15,8 +15,20 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\PersonalAccessToken;
 
+/**
+ * @tags Autentikasi (Authentication)
+ */
 class AuthController extends Controller
 {
+    /**
+     * Login Akun & Dapatkan Token Akses
+     *
+     * Mengotentikasi pengguna berdasarkan email dan password untuk mendapatkan Sanctum Bearer Token.
+     * Token yang diberikan menyertakan abilities/permissions sesuai role pengguna (Owner, Admin Keuangan, Admin Jaringan).
+     *
+     * @param LoginRequest $request
+     * @return JsonResponse
+     */
     public function login(LoginRequest $request): JsonResponse
     {
         $user = User::where('email', $request->string('email')->lower()->toString())->first();
@@ -57,6 +69,14 @@ class AuthController extends Controller
         ], 'Login successful.');
     }
 
+    /**
+     * Logout Sesi Saat Ini
+     *
+     * Mencabut (revoke) personal access token yang sedang digunakan pada sesi aktif saat ini.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function logout(Request $request): JsonResponse
     {
         AuditService::log('api_logout', 'authentication', 'User', $request->user()->id);
@@ -66,6 +86,14 @@ class AuthController extends Controller
         return ApiResponse::success(null, 'Logout successful.');
     }
 
+    /**
+     * Logout Semua Perangkat
+     *
+     * Mencabut (revoke) seluruh token akses aktif pengguna di semua perangkat mobile maupun web.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function logoutAll(Request $request): JsonResponse
     {
         AuditService::log('api_logout_all', 'authentication', 'User', $request->user()->id);
@@ -75,6 +103,14 @@ class AuthController extends Controller
         return ApiResponse::success(null, 'All device sessions have been revoked.');
     }
 
+    /**
+     * Profil Pengguna Aktif
+     *
+     * Mengambil informasi data profil, role operasional, dan daftar kemampuan/permissions dari pengguna yang sedang login.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function me(Request $request): JsonResponse
     {
         return ApiResponse::success($this->userPayload($request->user()));

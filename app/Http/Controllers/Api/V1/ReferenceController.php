@@ -11,14 +11,16 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * @tags Reference
+ * @tags Referensi Data (Reference)
  */
 class ReferenceController extends Controller
 {
     /**
-     * List Packages Reference
+     * Referensi Paket Internet (Packages)
      *
-     * Daftar paket internet aktif untuk form registrasi atau perubahan paket pelanggan.
+     * Mengambil daftar paket internet aktif untuk kebutuhan form registrasi pelanggan baru atau perubahan paket layanan.
+     *
+     * @return JsonResponse
      */
     public function packages(): JsonResponse
     {
@@ -33,10 +35,11 @@ class ReferenceController extends Controller
     }
 
     /**
-     * List Cash & Bank Accounts Reference
+     * Referensi Akun Kas & Bank
      *
-     * Daftar akun kas dan rekening bank aktif untuk transaksi pembayaran, pemasukan, dan pengeluaran.
-     * Mengambil dari tabel cash_bank_accounts atau akun COA bertipe asset (Kas & Bank).
+     * Mengambil daftar akun kas dan rekening bank aktif untuk transaksi pembayaran invoice, penerimaan kas, atau pengeluaran operasional.
+     *
+     * @return JsonResponse
      */
     public function cashBankAccounts(): JsonResponse
     {
@@ -87,9 +90,11 @@ class ReferenceController extends Controller
     }
 
     /**
-     * List Asset Accounts Reference
+     * Referensi Akun Aset (Assets)
      *
-     * Daftar akun aset (asset) aktif termasuk Kas, Bank, dan Piutang dari Chart of Accounts.
+     * Mengambil daftar akun bertipe aset (Kas, Bank, Piutang) dari Chart of Accounts untuk referensi transaksi.
+     *
+     * @return JsonResponse
      */
     public function assetAccounts(): JsonResponse
     {
@@ -97,9 +102,11 @@ class ReferenceController extends Controller
     }
 
     /**
-     * List Revenue Accounts Reference
+     * Referensi Akun Pendapatan (Revenue)
      *
-     * Daftar akun pendapatan (revenue) aktif untuk form pemasukan lain-lain.
+     * Mengambil daftar akun pendapatan aktif untuk form input transaksi pemasukan lain-lain non-langganan.
+     *
+     * @return JsonResponse
      */
     public function revenueAccounts(): JsonResponse
     {
@@ -107,23 +114,15 @@ class ReferenceController extends Controller
     }
 
     /**
-     * List Expense Accounts Reference
+     * Referensi Akun Beban (Expenses)
      *
-     * Daftar akun beban (expense) aktif untuk form pengeluaran operasional.
+     * Mengambil daftar akun beban aktif untuk form pencatatan dan pengajuan pengeluaran kas operasional.
+     *
+     * @return JsonResponse
      */
     public function expenseAccounts(): JsonResponse
     {
         return $this->accounts('expense');
-    }
-
-    /**
-     * List Chart of Accounts Reference
-     *
-     * Daftar lengkap Chart of Accounts (COA) dengan filter konteks transaksi (payment, income, expense, billing).
-     */
-    public function chartOfAccounts(Request $request, ChartOfAccountController $coaController): JsonResponse
-    {
-        return $coaController->index($request);
     }
 
     private function accounts(string $type): JsonResponse

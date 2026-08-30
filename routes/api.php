@@ -12,13 +12,14 @@ use App\Http\Controllers\Api\V1\IncomeController;
 use App\Http\Controllers\Api\V1\NetworkController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OntController;
+use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\ReferenceController;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
-    Route::get('/health', fn () => ApiResponse::success(['status' => 'ok']));
+    Route::get('/health', HealthController::class);
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:api-login');
 
     Route::middleware(['auth:sanctum', 'throttle:api-read'])->group(function () {
@@ -122,8 +123,6 @@ Route::prefix('v1')->group(function () {
             Route::get('/asset-accounts', [ReferenceController::class, 'assetAccounts']);
             Route::get('/revenue-accounts', [ReferenceController::class, 'revenueAccounts']);
             Route::get('/expense-accounts', [ReferenceController::class, 'expenseAccounts']);
-            Route::get('/chart-of-accounts', [ReferenceController::class, 'chartOfAccounts'])->middleware('api.permission:coa.view');
-            Route::get('/coas', [ReferenceController::class, 'chartOfAccounts'])->middleware('api.permission:coa.view');
         });
     });
 });

@@ -13,8 +13,24 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Dashboard
+ */
 class DashboardController extends Controller
 {
+    /**
+     * Ringkasan Metrik Dashboard Mobile
+     *
+     * Menyajikan ringkasan data metrik operasional real-time yang dipersonalisasi sesuai peran/role pengguna:
+     * - Keuangan: Total penerimaan hari ini, pemasukan non-langganan hari ini, dan jumlah pengeluaran pending.
+     * - Pelanggan: Total pelanggan, pelanggan aktif, terisolir, dan calon pelanggan berstatus pending.
+     * - Jaringan: Jumlah antrean perintah router (pending dan failed).
+     * - Owner: Total antrean persetujuan (approval) yang memerlukan tindakan.
+     * - Notifikasi: Jumlah pemberitahuan sistem yang belum dibaca.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function __invoke(Request $request): JsonResponse
     {
         $user = $request->user();

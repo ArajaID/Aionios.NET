@@ -3,17 +3,21 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\PppoeSessionQueryRequest;
 use App\Http\Resources\Api\V1\NetworkJobResource;
+use App\Http\Resources\Api\V1\PppoeSessionResource;
 use App\Models\Customer;
 use App\Models\MikrotikRouter;
 use App\Models\NetworkJob;
 use App\Services\AuditService;
 use App\Services\NetworkQueueService;
+use App\Services\PppoeSessionService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+
 
 /**
  * @tags Jaringan & MikroTik (Network)
@@ -188,6 +192,42 @@ class NetworkController extends Controller
         return $this->queue($customer, 'unisolate', $queue);
     }
 
+    /**
+     * Daftar Sesi PPPoE Realtime MikroTik
+     *
+     * Menampilkan daftar seluruh akun PPPoE pelanggan yang terdaftar, status sesi online/offline pada router MikroTik, IP address aktif, uptime koneksi, status isolasi, filter status, pencarian, dan paginasi data.
+     *
+     * @param PppoeSessionQueryRequest $request
+     * @param PppoeSessionService $service
+     * @return JsonResponse
+     */
+    public function pppoeSessions(PppoeSessionQueryRequest $request, PppoeSessionService $service): JsonResponse
+    {
+        $result = $service->getPaginatedSessions($request->validated());
+
+        return ApiResponse::success(
+            PppoeSessionResource::collection($result['items'])->resolve(),
+            $result['message'],
+            200,
+            $result['meta']
+        );
+    }
+
+    /**
+     * Ringkasan Sesi PPPoE & Status Router
+     *
+     * Menyediakan ringkasan cepat status koneksi router MikroTik, total akun PPPoE, jumlah sesi online, dan jumlah sesi offline untuk widget card dashboard Flutter.
+     *
+     * @param PppoeSessionService $service
+     * @return JsonResponse
+     */
+    public function pppoeSessionSummary(PppoeSessionService $service): JsonResponse
+    {
+        $summary = $service->getSummary();
+
+        return ApiResponse::success($summary, 'PPPoE session summary retrieved.');
+    }
+
     private function queue(Customer $customer, string $command, NetworkQueueService $queue): JsonResponse
     {
         try {
@@ -203,3 +243,4 @@ class NetworkController extends Controller
         return ApiResponse::success((new NetworkJobResource($job))->resolve(), 'Network operation queued.', 202);
     }
 }
+

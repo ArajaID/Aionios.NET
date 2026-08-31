@@ -306,6 +306,8 @@ Return:
 | Method | Path | Permission | Idempotency |
 |---|---|---|:---:|
 | `GET` | `/network/status` | `network.view` | — |
+| `GET` | `/network/pppoe-sessions` | `network.view` | — |
+| `GET` | `/network/pppoe-sessions/summary` | `network.view` | — |
 | `GET` | `/network/jobs` | `network.view` | — |
 | `GET` | `/network/jobs/{job}` | `network.view` | — |
 | `POST` | `/network/jobs/{job}/retry` | `network.retry` | Ya |
@@ -314,7 +316,84 @@ Return:
 | `POST` | `/customers/{customer}/network/isolate` | `network.manage` | Ya |
 | `POST` | `/customers/{customer}/network/unisolate` | `network.manage` | Ya |
 
+#### PPPoE Sessions Realtime Monitor (`GET /network/pppoe-sessions`)
+
+Query parameters:
+- `status`: `all` (default), `online`, `offline`
+- `search`: Kata kunci untuk nama pelanggan, kode pelanggan, atau username PPPoE
+- `page`: Nomor halaman (default `1`)
+- `per_page`: Jumlah data per halaman (default `20`, maksimum `100`)
+- `sort`: `customer_name`, `customer_code`, `username`, `status`, `created_at` (gunakan prefix `-` untuk descending)
+
+Response `200 OK`:
+
+```json
+{
+  "success": true,
+  "message": "PPPoE sessions retrieved.",
+  "data": [
+    {
+      "customer_id": 100,
+      "customer_code": "AIO-000100",
+      "customer_name": "Budi Santoso",
+      "username": "aio000100",
+      "profile": "PAKET-20MBPS",
+      "is_isolated": false,
+      "is_online": true,
+      "session": {
+        "address": "10.10.10.25",
+        "uptime": "1h23m45s",
+        "caller_id": "AA:BB:CC:DD:EE:FF",
+        "service": "pppoe"
+      }
+    },
+    {
+      "customer_id": 101,
+      "customer_code": "AIO-000101",
+      "customer_name": "Andi",
+      "username": "aio000101",
+      "profile": "PAKET-10MBPS",
+      "is_isolated": false,
+      "is_online": false,
+      "session": null
+    }
+  ],
+  "meta": {
+    "router_status": "online",
+    "total_accounts": 250,
+    "online": 183,
+    "offline": 67,
+    "checked_at": "2026-08-31T04:30:00Z",
+    "current_page": 1,
+    "per_page": 20,
+    "total": 250,
+    "last_page": 13
+  }
+}
+```
+
+*Jika Router MikroTik sedang offline:* Endpoint tetap mengembalikan `200 OK` dengan `"router_status": "offline"`, `"online": 0`, `"session": null` untuk semua akun, dan pesan ramah tanpa mengekspos exception internal RouterOS.
+
+#### PPPoE Sessions Summary (`GET /network/pppoe-sessions/summary`)
+
+Response `200 OK`:
+
+```json
+{
+  "success": true,
+  "message": "PPPoE session summary retrieved.",
+  "data": {
+    "router_status": "online",
+    "total_accounts": 250,
+    "online": 183,
+    "offline": 67,
+    "checked_at": "2026-08-31T04:30:00Z"
+  }
+}
+```
+
 Write network mengembalikan `202`. Mobile menampilkan status job dan melakukan polling `GET /network/jobs/{job}` sampai `success` atau `failed`.
+
 
 ### Billing & Invoice Adjustment
 

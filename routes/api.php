@@ -47,8 +47,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/customers/{customer}/ont/assign', [OntController::class, 'assign'])->middleware(['api.permission:onts.manage', 'throttle:api-write', 'api.idempotent']);
         Route::post('/customers/{customer}/ont/return', [OntController::class, 'return'])->middleware(['api.permission:onts.manage', 'throttle:api-write', 'api.idempotent']);
 
-        // Network Provisioning & Isolation
+        // Network Provisioning, Isolation & PPPoE Monitoring
         Route::get('/network/status', [NetworkController::class, 'status'])->middleware('api.permission:network.view');
+        Route::get('/network/pppoe-sessions', [NetworkController::class, 'pppoeSessions'])->middleware('api.permission:network.view');
+        Route::get('/network/pppoe-sessions/summary', [NetworkController::class, 'pppoeSessionSummary'])->middleware('api.permission:network.view');
         Route::get('/network/jobs', [NetworkController::class, 'jobs'])->middleware('api.permission:network.view');
         Route::get('/network/jobs/{job}', [NetworkController::class, 'job'])->middleware('api.permission:network.view');
         Route::post('/network/jobs/{job}/retry', [NetworkController::class, 'retry'])->middleware(['api.permission:network.retry', 'throttle:api-write', 'api.idempotent']);
@@ -56,6 +58,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/customers/{customer}/network/sync', [NetworkController::class, 'sync'])->middleware(['api.permission:network.manage', 'throttle:api-write', 'api.idempotent']);
         Route::post('/customers/{customer}/network/isolate', [NetworkController::class, 'isolate'])->middleware(['api.permission:network.manage', 'throttle:api-write', 'api.idempotent']);
         Route::post('/customers/{customer}/network/unisolate', [NetworkController::class, 'unisolate'])->middleware(['api.permission:network.manage', 'throttle:api-write', 'api.idempotent']);
+
 
         // Billing & Invoices
         Route::get('/customers/{customer}/invoices', [BillingController::class, 'customerInvoices'])->middleware('api.permission:billing.view');

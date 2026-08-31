@@ -98,6 +98,63 @@ class MikrotikService
         return [];
     }
 
+    /**
+     * Mengambil data koneksi dan active PPPoE connections dari MikroTik RouterOS secara realtime,
+     * dengan caching singkat (3 detik) untuk mengoptimalkan polling simultan klien mobile.
+     *
+     * @param bool $forceRefresh
+     * @return array{
+     *     success: bool,
+     *     status: string,
+     *     message: string,
+     *     active_connections: array,
+     *     active_by_username: \Illuminate\Support\Collection,
+     *     checked_at: string,
+     *     data: array
+     * }
+     */
+    public function getPppoeSessionData(bool $forceRefresh = false): array
+    {
+        if (!$this->router || !$this->router->is_active) {
+            return [
+                'success' => false,
+                'status' => 'offline',
+                'message' => 'Tidak ada router MikroTik yang aktif.',
+                'active_connections' => [],
+                'active_by_username' => collect(),
+                'checked_at' => now()->toIso8601String(),
+                'data' => [],
+            ];
+        }
+
+        $cacheKey = "mikrotik:pppoe_sessions:{$this->router->id}";
+
+        if ($forceRefresh) {
+            cache()->forget($cacheKey);
+        }
+
+        return cache()->remember($cacheKey, now()->addSeconds(3), function () {
+            $testResult = $this->testConnection();
+            $isOnline = (bool) ($testResult['success'] ?? false);
+            $activeConnections = $isOnline ? $this->getActiveConnections() : [];
+
+            $activeByUsername = collect($activeConnections)->keyBy(function ($connection) {
+                return is_array($connection) ? ($connection['name'] ?? '') : '';
+            })->filter(fn ($_, $key) => !empty($key));
+
+            return [
+                'success' => $isOnline,
+                'status' => $testResult['status'] ?? ($isOnline ? 'online' : 'offline'),
+                'message' => $testResult['message'] ?? ($isOnline ? 'Terhubung ke MikroTik RouterOS.' : 'MikroTik tidak dapat dihubungi.'),
+                'active_connections' => $activeConnections,
+                'active_by_username' => $activeByUsername,
+                'checked_at' => now()->toIso8601String(),
+                'data' => $testResult['data'] ?? [],
+            ];
+        });
+    }
+
+
     public function deletePppProfile(string $profileName): array
     {
         if (in_array($profileName, ['default', 'default-encryption', 'ISOLIR'], true)) {

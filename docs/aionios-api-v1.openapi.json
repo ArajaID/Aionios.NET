@@ -311,7 +311,7 @@
         },
         "/chart-of-accounts": {
             "get": {
-                "operationId": "v1.chartOfAccount.index_66",
+                "operationId": "v1.chartOfAccount.index_68",
                 "description": "Mengambil daftar Chart of Accounts (COA) dengan filter konteks transaksi (payment, income, expense, billing), pencarian kode/nama akun, filter status aktif, dan opsi paginasi data.",
                 "summary": "Daftar Bagan Akun (Chart of Accounts)",
                 "tags": [
@@ -542,7 +542,7 @@
         },
         "/chart-of-accounts/{chartOfAccount}": {
             "get": {
-                "operationId": "v1.chartOfAccount.show_67",
+                "operationId": "v1.chartOfAccount.show_69",
                 "description": "Menampilkan informasi detail satu akun COA tertentu berdasarkan ID, termasuk data relasi rekening kas & bank yang terhubung.",
                 "summary": "Detail Bagan Akun (COA)",
                 "tags": [
@@ -603,7 +603,7 @@
         },
         "/coas": {
             "get": {
-                "operationId": "v1.chartOfAccount.index_68",
+                "operationId": "v1.chartOfAccount.index_70",
                 "description": "Mengambil daftar Chart of Accounts (COA) dengan filter konteks transaksi (payment, income, expense, billing), pencarian kode/nama akun, filter status aktif, dan opsi paginasi data.",
                 "summary": "Daftar Bagan Akun (Chart of Accounts)",
                 "tags": [
@@ -834,7 +834,7 @@
         },
         "/coas/{chartOfAccount}": {
             "get": {
-                "operationId": "v1.chartOfAccount.show_69",
+                "operationId": "v1.chartOfAccount.show_71",
                 "description": "Menampilkan informasi detail satu akun COA tertentu berdasarkan ID, termasuk data relasi rekening kas & bank yang terhubung.",
                 "summary": "Detail Bagan Akun (COA)",
                 "tags": [
@@ -2325,6 +2325,252 @@
                                                 "status",
                                                 "router",
                                                 "jobs"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/network/pppoe-sessions": {
+            "get": {
+                "operationId": "network.pppoeSessions",
+                "description": "Menampilkan daftar seluruh akun PPPoE pelanggan yang terdaftar, status sesi online/offline pada router MikroTik, IP address aktif, uptime koneksi, status isolasi, filter status, pencarian, dan paginasi data.",
+                "summary": "Daftar Sesi PPPoE Realtime MikroTik",
+                "tags": [
+                    "Jaringan & MikroTik (Network)",
+                    "Network"
+                ],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "all",
+                                "online",
+                                "offline",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "customer_name",
+                                "-customer_name",
+                                "customer_code",
+                                "-customer_code",
+                                "username",
+                                "-username",
+                                "status",
+                                "-status",
+                                "created_at",
+                                "-created_at",
+                                null
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Router is currently offline. Showing cached/account state.",
+                                                "PPPoE sessions retrieved."
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "router_status": {
+                                                    "type": "string"
+                                                },
+                                                "total_accounts": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                },
+                                                "online": {
+                                                    "type": "integer"
+                                                },
+                                                "offline": {
+                                                    "type": "integer"
+                                                },
+                                                "checked_at": {
+                                                    "type": "string"
+                                                },
+                                                "current_page": {
+                                                    "type": "integer"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                },
+                                                "last_page": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "router_status",
+                                                "total_accounts",
+                                                "online",
+                                                "offline",
+                                                "checked_at",
+                                                "current_page",
+                                                "per_page",
+                                                "total",
+                                                "last_page"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/network/pppoe-sessions/summary": {
+            "get": {
+                "operationId": "network.pppoeSessionSummary",
+                "description": "Menyediakan ringkasan cepat status koneksi router MikroTik, total akun PPPoE, jumlah sesi online, dan jumlah sesi offline untuk widget card dashboard Flutter.",
+                "summary": "Ringkasan Sesi PPPoE & Status Router",
+                "tags": [
+                    "Jaringan & MikroTik (Network)",
+                    "Network"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "PPPoE session summary retrieved."
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "router_status": {
+                                                    "type": "string"
+                                                },
+                                                "total_accounts": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                },
+                                                "online": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                },
+                                                "offline": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "checked_at": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "router_status",
+                                                "total_accounts",
+                                                "online",
+                                                "offline",
+                                                "checked_at"
                                             ]
                                         },
                                         "meta": {
